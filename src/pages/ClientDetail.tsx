@@ -540,6 +540,16 @@ export default function ClientDetail() {
             <p className="text-sm text-muted-foreground">Číslo smlouvy</p>
             <p className="font-medium">{client.contractNumber || 'Neuvedeno'}</p>
           </div>
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">Klíčový pracovník</p>
+            <p className="font-medium">{client.keyWorker || 'Neuvedeno'}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">Opatrovník</p>
+            <p className="font-medium">
+              {client.guardianship?.hasGuardian ? (client.guardianship.guardianName || 'Ano') : 'Ne'}
+            </p>
+          </div>
           {client.phone && (
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Telefon</p>
@@ -562,6 +572,83 @@ export default function ClientDetail() {
             <div className="space-y-1 md:col-span-2">
               <p className="text-sm text-muted-foreground">Adresa</p>
               <p className="font-medium">{client.address}</p>
+            </div>
+          )}
+          
+          {/* Invalidita */}
+          {client.disability && (client.disability.level || client.disability.withBenefit) && (
+            <>
+              {client.disability.level && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Stupeň invalidity</p>
+                  <p className="font-medium">{client.disability.level}. stupeň</p>
+                </div>
+              )}
+              {client.disability.withBenefit && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Invalidní důchod</p>
+                  <p className="font-medium">
+                    {client.disability.benefitAmount 
+                      ? `${client.disability.benefitAmount} Kč`
+                      : 'Ano'}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Péče */}
+          {client.careAllowance?.level && (
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Stupeň péče</p>
+              <p className="font-medium">
+                {client.careAllowance.level}. stupeň
+                {client.careAllowance.dateGranted && ` (od ${new Date(client.careAllowance.dateGranted).toLocaleDateString('cs-CZ')})`}
+              </p>
+            </div>
+          )}
+
+          {/* Aktuální medikace */}
+          {client.medication && (
+            <div className="space-y-1 md:col-span-2">
+              <p className="text-sm text-muted-foreground">Aktuální medikace</p>
+              <p className="font-medium whitespace-pre-wrap">{client.medication}</p>
+            </div>
+          )}
+
+          {/* Zaměstnání */}
+          {client.employments && client.employments.length > 0 && (
+            <div className="space-y-1 md:col-span-2">
+              <p className="text-sm text-muted-foreground">Zaměstnání</p>
+              <div className="space-y-2">
+                {client.employments.map((employment, index) => (
+                  <div key={employment.id} className="flex gap-2 items-baseline">
+                    <p className="font-medium">
+                      {index + 1}. {employment.workplace}
+                      {employment.income && ` - ${employment.income} Kč`}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sociální služby */}
+          {client.socialServices && client.socialServices.length > 0 && (
+            <div className="space-y-1 md:col-span-2">
+              <p className="text-sm text-muted-foreground">Jiné sociální služby</p>
+              <div className="space-y-2">
+                {client.socialServices.map((service, index) => (
+                  <div key={service.id} className="space-y-1">
+                    <p className="font-medium">
+                      {index + 1}. {service.name}
+                    </p>
+                    {service.notes && (
+                      <p className="text-sm text-muted-foreground pl-4">{service.notes}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
