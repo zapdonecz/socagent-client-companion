@@ -69,7 +69,7 @@ export default function Calendar() {
     }
     
     if (filterClient !== 'all') {
-      filtered = filtered.filter(e => e.clientId === filterClient);
+      filtered = filtered.filter(e => filterClient === 'none' ? !e.clientId : e.clientId === filterClient);
     }
     
     setFilteredEvents(filtered);
@@ -94,8 +94,8 @@ export default function Calendar() {
       id: editingEvent?.id || Date.now().toString(),
       title: eventTitle,
       type: eventType,
-      clientId: selectedClient || undefined,
-      clientName: selectedClient ? clients.find(c => c.id === selectedClient)?.firstName + ' ' + clients.find(c => c.id === selectedClient)?.lastName : undefined,
+      clientId: selectedClient && selectedClient !== 'none' ? selectedClient : undefined,
+      clientName: selectedClient && selectedClient !== 'none' ? clients.find(c => c.id === selectedClient)?.firstName + ' ' + clients.find(c => c.id === selectedClient)?.lastName : undefined,
       date: `${eventDate}T${eventTime || '00:00'}`,
       duration: eventDuration,
       notes: eventNotes,
@@ -237,7 +237,7 @@ export default function Calendar() {
                       <SelectValue placeholder="Žádný klient" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Osobní událost</SelectItem>
+                      <SelectItem value="none">Osobní událost</SelectItem>
                       {clients.map(client => (
                         <SelectItem key={client.id} value={client.id}>
                           {client.firstName} {client.lastName}
@@ -340,7 +340,7 @@ export default function Calendar() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Všichni klienti</SelectItem>
-                  <SelectItem value="">Osobní události</SelectItem>
+                  <SelectItem value="none">Osobní události</SelectItem>
                   {clients.map(client => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.firstName} {client.lastName}
@@ -356,7 +356,7 @@ export default function Calendar() {
               <Badge variant="secondary" className="gap-1">
                 Aktivní filtry: {filterType !== 'all' && getEventTypeLabel(filterType as any)}
                 {filterType !== 'all' && filterClient !== 'all' && ', '}
-                {filterClient !== 'all' && (filterClient === '' ? 'Osobní události' : clients.find(c => c.id === filterClient)?.firstName)}
+                {filterClient !== 'all' && (filterClient === 'none' ? 'Osobní události' : clients.find(c => c.id === filterClient)?.firstName)}
                 <button onClick={() => { setFilterType('all'); setFilterClient('all'); }}>
                   <X className="h-3 w-3" />
                 </button>
