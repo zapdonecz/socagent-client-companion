@@ -92,7 +92,7 @@ export const deleteMeeting = (id: string) => {
 // Settings
 const defaultSettings: AppSettings = {
   deadlineWarningDays: 14,
-  reviewReminderMonths: 5,
+  reviewReminderDays: 30,
   profileUpdateMonths: 6,
   showCompletedPlans: false,
   stepDeadlineWarningDays: 14,
@@ -185,13 +185,9 @@ export const getContacts = (): ClientContact[] => getItems<ClientContact>(STORAG
 
 export const getContactsByClientId = (clientId: string): ClientContact[] => {
   const allContacts = getContacts();
-  console.log('getContactsByClientId - All contacts:', allContacts);
-  console.log('getContactsByClientId - Filtering for clientId:', clientId);
   const filtered = allContacts.filter(c => {
-    console.log('Contact:', c.name, 'clientIds:', c.clientIds, 'includes?', c.clientIds?.includes(clientId));
     return c.clientIds && c.clientIds.includes(clientId);
   });
-  console.log('getContactsByClientId - Filtered contacts:', filtered);
   return filtered;
 };
 

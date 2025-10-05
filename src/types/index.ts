@@ -193,7 +193,7 @@ export interface Meeting {
 
 export interface AppSettings {
   deadlineWarningDays: number;
-  reviewReminderMonths: number;
+  reviewReminderDays: number;
   profileUpdateMonths: number;
   showCompletedPlans: boolean;
   stepDeadlineWarningDays: number;

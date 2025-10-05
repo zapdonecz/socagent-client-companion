@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Plus, Calendar, AlertCircle } from 'lucide-react';
 import { getClients } from '@/lib/storage';
-import { getReviewsByClientId, getNextReviewDate } from '@/lib/extendedStorage';
+import { getReviewsByClientId, getNextReviewDate, getSettings } from '@/lib/extendedStorage';
 import { Client, SemiAnnualReview } from '@/types';
 import { format, differenceInDays } from 'date-fns';
 import { cs } from 'date-fns/locale';
@@ -78,11 +78,11 @@ export default function Reviews() {
         
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Nadcházející (30 dní)</CardTitle>
+            <CardTitle className="text-sm font-medium">Nadcházející ({getSettings().reviewReminderDays} dní)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-warning">
-              {clientsWithReviews.filter(c => c.daysUntilNext > 0 && c.daysUntilNext <= 30).length}
+              {clientsWithReviews.filter(c => c.daysUntilNext > 0 && c.daysUntilNext <= getSettings().reviewReminderDays).length}
             </div>
           </CardContent>
         </Card>
@@ -115,7 +115,7 @@ export default function Reviews() {
                         Vyžaduje hodnocení
                       </Badge>
                     )}
-                    {daysUntilNext > 0 && daysUntilNext <= 30 && (
+                    {daysUntilNext > 0 && daysUntilNext <= getSettings().reviewReminderDays && (
                       <Badge variant="outline" className="gap-1 border-warning text-warning">
                         <Calendar className="h-3 w-3" />
                         Za {daysUntilNext} dní

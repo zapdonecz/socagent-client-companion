@@ -200,13 +200,10 @@ export default function ClientDetail() {
 
   const loadContacts = () => {
     if (!id) {
-      console.log('LoadContacts: No client ID');
       return;
     }
 
-    console.log('LoadContacts: Loading contacts for client ID:', id);
     let allContacts = getContactsByClientId(id);
-    console.log('LoadContacts: Found contacts:', allContacts.length, allContacts);
     
     // Check if client exists and has contact info
     if (client && (client.phone || client.email || client.address)) {
@@ -225,13 +222,10 @@ export default function ClientDetail() {
         updatedAt: new Date().toISOString(),
       };
       
-      console.log('LoadContacts: Saving client own contact:', ownContactData);
       saveContact(ownContactData);
       allContacts = getContactsByClientId(id);
-      console.log('LoadContacts: After saving own contact, total contacts:', allContacts.length);
     }
     
-    console.log('LoadContacts: Setting contacts state with:', allContacts);
     setContacts(allContacts);
   };
 

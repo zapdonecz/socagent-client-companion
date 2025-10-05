@@ -43,7 +43,7 @@ export default function Dashboard() {
       const reviews = getReviewsByClientId(client.id);
       const nextReviewDate = getNextReviewDate(client.contractDate, reviews);
       const daysUntilReview = differenceInDays(nextReviewDate, now);
-      return daysUntilReview <= 30; // Show if review is due within 30 days
+      return daysUntilReview <= settings.reviewReminderDays;
     });
     setClientsNeedingReview(needingReview);
 

@@ -56,21 +56,21 @@ export function SettingsPanel() {
 
           <div className="space-y-2">
             <Label htmlFor="reviewReminder">
-              Připomenutí půlročního hodnocení (měsíce předem)
+              Připomenutí půlročního hodnocení (dny předem)
             </Label>
             <Input
               id="reviewReminder"
               type="number"
               min="1"
-              max="6"
-              value={settings.reviewReminderMonths}
+              max="180"
+              value={settings.reviewReminderDays}
               onChange={(e) => setSettings({
                 ...settings,
-                reviewReminderMonths: parseInt(e.target.value) || 5
+                reviewReminderDays: parseInt(e.target.value) || 30
               })}
             />
             <p className="text-xs text-muted-foreground">
-              Upozornit X měsíců před termínem hodnocení
+              Upozornit X dní před termínem hodnocení
             </p>
           </div>
 
