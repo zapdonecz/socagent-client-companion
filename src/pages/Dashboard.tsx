@@ -6,6 +6,7 @@ import { AlertCircle, Calendar, Users, FileText, Settings } from 'lucide-react';
 import { getCurrentUser, logout } from '@/lib/auth';
 import { getClients, getProfiles, getPlansByClientId, getReviewsByClientId, getEvents } from '@/lib/storage';
 import { DataManagement } from '@/components/DataManagement';
+import { UserManagement } from '@/components/UserManagement';
 import { Client } from '@/types';
 import { differenceInMonths, addMonths, isBefore } from 'date-fns';
 
@@ -99,8 +100,9 @@ export default function Dashboard() {
         </div>
 
         {showSettings && (
-          <div className="mb-8">
+          <div className="mb-8 space-y-6">
             <DataManagement />
+            {user.role === 'admin' && <UserManagement />}
           </div>
         )}
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { login, register, loginSchema, registerSchema } from '@/lib/auth';
+import { importData } from '@/lib/dataExport';
+import { Upload } from 'lucide-react';
 
 export default function Login() {
   const [loginEmail, setLoginEmail] = useState('');
@@ -16,7 +18,9 @@ export default function Login() {
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
   const [registerName, setRegisterName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -97,6 +101,45 @@ export default function Login() {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+
+    try {
+      const text = await file.text();
+      const result = importData(text);
+
+      if (result.success) {
+        toast({
+          title: 'Import úspěšný',
+          description: 'Data byla úspěšně importována. Obnovte stránku.',
+        });
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        toast({
+          title: 'Chyba při importu',
+          description: result.error || 'Neplatný formát dat',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Chyba při importu',
+        description: 'Nepodařilo se načíst soubor',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -207,6 +250,28 @@ export default function Login() {
               </form>
             </TabsContent>
           </Tabs>
+          
+          <div className="mt-6">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isImporting}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              {isImporting ? 'Importuji data...' : 'Importovat data ze zálohy'}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleImport}
+              className="hidden"
+            />
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              Importujte zálohu dat z jiného počítače
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -1,6 +1,10 @@
 import { User, UserRole } from '@/types';
 import { z } from 'zod';
 
+interface StoredUser extends User {
+  password: string;
+}
+
 const STORAGE_KEYS = {
   USER: 'socagent_user',
   USERS_DB: 'socagent_users_db',
@@ -25,12 +29,13 @@ export const loginSchema = z.object({
 const initializeUsers = () => {
   const usersJson = localStorage.getItem(STORAGE_KEYS.USERS_DB);
   if (!usersJson) {
-    const defaultUsers: User[] = [
+    const defaultUsers: StoredUser[] = [
       {
         id: '1',
         email: 'admin@socagent.cz',
         name: 'Administrátor',
         role: 'admin',
+        password: 'demo123',
       },
     ];
     localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(defaultUsers));
@@ -44,19 +49,20 @@ export const register = (email: string, password: string, name: string): { succe
   const usersJson = localStorage.getItem(STORAGE_KEYS.USERS_DB);
   if (!usersJson) return { success: false, error: 'Systémová chyba' };
   
-  const users: User[] = JSON.parse(usersJson);
+  const users: StoredUser[] = JSON.parse(usersJson);
   
   // Check if email already exists
   if (users.some(u => u.email === email)) {
     return { success: false, error: 'Email je již registrován' };
   }
   
-  // Create new user
-  const newUser: User = {
+  // Create new user with password
+  const newUser: StoredUser = {
     id: Date.now().toString(),
     email,
     name,
     role: 'worker',
+    password, // In production, this would be hashed
   };
   
   users.push(newUser);
@@ -68,14 +74,15 @@ export const register = (email: string, password: string, name: string): { succe
 export const login = (email: string, password: string): User | null => {
   initializeUsers();
   
-  // Simple demo auth - in production, this would be server-side
   const usersJson = localStorage.getItem(STORAGE_KEYS.USERS_DB);
   if (!usersJson) return null;
   
-  const users: User[] = JSON.parse(usersJson);
-  const user = users.find(u => u.email === email);
+  const users: StoredUser[] = JSON.parse(usersJson);
+  const storedUser = users.find(u => u.email === email);
   
-  if (user && password === 'demo123') {
+  if (storedUser && storedUser.password === password) {
+    // Don't store password in session
+    const { password: _, ...user } = storedUser;
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
     return user;
   }
@@ -100,4 +107,39 @@ export const isAuthenticated = (): boolean => {
 export const hasRole = (role: UserRole): boolean => {
   const user = getCurrentUser();
   return user?.role === role;
+};
+
+export const getAllUsers = (): User[] => {
+  const usersJson = localStorage.getItem(STORAGE_KEYS.USERS_DB);
+  if (!usersJson) return [];
+  const storedUsers: StoredUser[] = JSON.parse(usersJson);
+  // Don't return passwords
+  return storedUsers.map(({ password, ...user }) => user);
+};
+
+export const deleteUser = (userId: string): { success: boolean; error?: string } => {
+  const usersJson = localStorage.getItem(STORAGE_KEYS.USERS_DB);
+  if (!usersJson) return { success: false, error: 'Systémová chyba' };
+  
+  const users: StoredUser[] = JSON.parse(usersJson);
+  const currentUser = getCurrentUser();
+  
+  // Prevent deleting yourself
+  if (currentUser?.id === userId) {
+    return { success: false, error: 'Nelze smazat vlastní účet' };
+  }
+  
+  // Prevent deleting last admin
+  const user = users.find(u => u.id === userId);
+  if (user?.role === 'admin') {
+    const adminCount = users.filter(u => u.role === 'admin').length;
+    if (adminCount <= 1) {
+      return { success: false, error: 'Nelze smazat posledního administrátora' };
+    }
+  }
+  
+  const filteredUsers = users.filter(u => u.id !== userId);
+  localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(filteredUsers));
+  
+  return { success: true };
 };
