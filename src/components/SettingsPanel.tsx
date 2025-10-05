@@ -94,6 +94,46 @@ export function SettingsPanel() {
             </p>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="stepDeadlineWarning">
+              Upozornění na deadline kroků (dny předem)
+            </Label>
+            <Input
+              id="stepDeadlineWarning"
+              type="number"
+              min="1"
+              max="90"
+              value={settings.stepDeadlineWarningDays}
+              onChange={(e) => setSettings({
+                ...settings,
+                stepDeadlineWarningDays: parseInt(e.target.value) || 14
+              })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Zobrazit kroky plánů s deadlinem do X dní na dashboardu
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="eventReminder">
+              Upozornění na události (dny předem)
+            </Label>
+            <Input
+              id="eventReminder"
+              type="number"
+              min="1"
+              max="30"
+              value={settings.eventReminderDays}
+              onChange={(e) => setSettings({
+                ...settings,
+                eventReminderDays: parseInt(e.target.value) || 7
+              })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Zobrazit nadcházející události do X dní na dashboardu
+            </p>
+          </div>
+
           <div className="flex items-center justify-between space-x-2 py-4 border-t">
             <div className="space-y-0.5">
               <Label htmlFor="showCompleted">

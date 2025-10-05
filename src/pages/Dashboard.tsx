@@ -28,6 +28,9 @@ export default function Dashboard() {
       return;
     }
 
+    // Get settings
+    const settings = getSettings();
+
     // Calculate alerts
     const clients = getClients();
     const profiles = getProfiles();
@@ -63,12 +66,12 @@ export default function Dashboard() {
     });
     setClientsNeedingPlanning(needingPlanning);
 
-    // Upcoming plan deadlines (next 14 days)
+    // Upcoming plan deadlines (configurable days)
     const upcoming = allPlans.filter(plan => {
       if (plan.status !== 'active' || !plan.deadline) return false;
       const deadline = parseISO(plan.deadline);
       const daysUntil = differenceInDays(deadline, now);
-      return daysUntil >= 0 && daysUntil <= 14;
+      return daysUntil >= 0 && daysUntil <= settings.deadlineWarningDays;
     }).sort((a, b) => {
       const dateA = parseISO(a.deadline!);
       const dateB = parseISO(b.deadline!);
@@ -76,7 +79,7 @@ export default function Dashboard() {
     });
     setUpcomingDeadlines(upcoming);
 
-    // Upcoming step deadlines (next 14 days)
+    // Upcoming step deadlines (configurable days)
     const upcomingSteps: {plan: PersonalPlan, step: PlanStep, clientName: string}[] = [];
     allPlans.forEach(plan => {
       if (plan.status === 'active') {
@@ -84,7 +87,7 @@ export default function Dashboard() {
           if (!step.completed && step.deadline) {
             const deadline = parseISO(step.deadline);
             const daysUntil = differenceInDays(deadline, now);
-            if (daysUntil >= 0 && daysUntil <= 14) {
+            if (daysUntil >= 0 && daysUntil <= settings.stepDeadlineWarningDays) {
               upcomingSteps.push({
                 plan,
                 step,
@@ -102,12 +105,12 @@ export default function Dashboard() {
     });
     setUpcomingStepDeadlines(upcomingSteps);
 
-    // Upcoming events
+    // Upcoming events (configurable days)
     const events = getEvents();
     const upcomingEvts = events.filter(event => {
       const eventDate = new Date(event.date);
       const daysUntil = differenceInDays(eventDate, now);
-      return daysUntil >= 0 && daysUntil <= 7;
+      return daysUntil >= 0 && daysUntil <= settings.eventReminderDays;
     }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     setUpcomingEventsData(upcomingEvts);
   }, [user, navigate]);
@@ -150,7 +153,9 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-primary">{upcomingEventsData.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Příštích 7 dní</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Příštích {getSettings().eventReminderDays} dní
+            </p>
           </CardContent>
         </Card>
 
@@ -172,7 +177,9 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-warning">{upcomingDeadlines.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Příštích 14 dní</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Příštích {getSettings().deadlineWarningDays} dní
+            </p>
           </CardContent>
         </Card>
 
@@ -199,7 +206,7 @@ export default function Dashboard() {
                 <CardTitle>Blížící se deadliny plánů</CardTitle>
               </div>
               <CardDescription>
-                Cíle s termínem dokončení do 14 dní
+                Cíle s termínem dokončení do {getSettings().deadlineWarningDays} dní
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -236,7 +243,7 @@ export default function Dashboard() {
                 <CardTitle>Blížící se kroky plánů</CardTitle>
               </div>
               <CardDescription>
-                Kroky s termínem dokončení do 14 dní
+                Kroky s termínem dokončení do {getSettings().stepDeadlineWarningDays} dní
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -275,7 +282,7 @@ export default function Dashboard() {
                 <CardTitle>Nadcházející události</CardTitle>
               </div>
               <CardDescription>
-                Naplánované události příštích 7 dní
+                Naplánované události příštích {getSettings().eventReminderDays} dní
               </CardDescription>
             </CardHeader>
             <CardContent>

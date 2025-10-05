@@ -93,6 +93,8 @@ const defaultSettings: AppSettings = {
   reviewReminderMonths: 5,
   profileUpdateMonths: 6,
   showCompletedPlans: false,
+  stepDeadlineWarningDays: 14,
+  eventReminderDays: 7,
 };
 
 export const getSettings = (): AppSettings => {

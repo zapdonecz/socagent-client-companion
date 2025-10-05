@@ -174,4 +174,6 @@ export interface AppSettings {
   reviewReminderMonths: number;
   profileUpdateMonths: number;
   showCompletedPlans: boolean;
+  stepDeadlineWarningDays: number;
+  eventReminderDays: number;
 }
