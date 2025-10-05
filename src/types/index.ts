@@ -23,17 +23,35 @@ export interface Client {
     hasGuardian: boolean;
     guardianName?: string;
   };
-  disability?: string;
+  disability?: {
+    level?: '1' | '2' | '3';
+    withBenefit: boolean;
+    benefitAmount?: number;
+  };
   careAllowance?: {
     level?: string;
     dateGranted?: string;
   };
-  treatmentSupport: boolean;
+  medication?: string;
+  employments: Employment[];
+  socialServices: SocialService[];
   contacts: ClientContact[];
   notes: ClientNote[];
   documents: ClientDocument[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Employment {
+  id: string;
+  workplace: string;
+  income?: number;
+}
+
+export interface SocialService {
+  id: string;
+  name: string;
+  notes?: string;
 }
 
 export interface ClientNote {

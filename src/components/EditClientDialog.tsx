@@ -4,9 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Client } from '@/types';
+import { Client, Employment, SocialService } from '@/types';
 import { saveClient } from '@/lib/storage';
+import { Plus, Trash2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface EditClientDialogProps {
   open: boolean;
@@ -29,12 +33,41 @@ export function EditClientDialog({ open, onOpenChange, client, onClientUpdated }
     keyWorker: client.keyWorker,
     hasGuardian: client.guardianship?.hasGuardian || false,
     guardianName: client.guardianship?.guardianName || '',
-    disability: client.disability || '',
+    disabilityLevel: client.disability?.level || '',
+    disabilityWithBenefit: client.disability?.withBenefit || false,
+    disabilityBenefitAmount: client.disability?.benefitAmount || '',
     careLevel: client.careAllowance?.level || '',
     careDateGranted: client.careAllowance?.dateGranted || '',
-    treatmentSupport: client.treatmentSupport,
+    medication: client.medication || '',
   });
+  
+  const [employments, setEmployments] = useState(client.employments || []);
+  const [socialServices, setSocialServices] = useState(client.socialServices || []);
   const { toast } = useToast();
+
+  const addEmployment = () => {
+    setEmployments([...employments, { id: Date.now().toString(), workplace: '', income: undefined }]);
+  };
+
+  const removeEmployment = (id: string) => {
+    setEmployments(employments.filter(e => e.id !== id));
+  };
+
+  const updateEmployment = (id: string, field: keyof Employment, value: any) => {
+    setEmployments(employments.map(e => e.id === id ? { ...e, [field]: value } : e));
+  };
+
+  const addSocialService = () => {
+    setSocialServices([...socialServices, { id: Date.now().toString(), name: '', notes: '' }]);
+  };
+
+  const removeSocialService = (id: string) => {
+    setSocialServices(socialServices.filter(s => s.id !== id));
+  };
+
+  const updateSocialService = (id: string, field: keyof SocialService, value: any) => {
+    setSocialServices(socialServices.map(s => s.id === id ? { ...s, [field]: value } : s));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,12 +97,18 @@ export function EditClientDialog({ open, onOpenChange, client, onClientUpdated }
         hasGuardian: formData.hasGuardian,
         guardianName: formData.hasGuardian ? formData.guardianName : undefined,
       },
-      disability: formData.disability || undefined,
+      disability: formData.disabilityLevel ? {
+        level: formData.disabilityLevel as '1' | '2' | '3',
+        withBenefit: formData.disabilityWithBenefit,
+        benefitAmount: formData.disabilityWithBenefit && formData.disabilityBenefitAmount ? Number(formData.disabilityBenefitAmount) : undefined,
+      } : undefined,
       careAllowance: formData.careLevel ? {
         level: formData.careLevel,
         dateGranted: formData.careDateGranted || undefined,
       } : undefined,
-      treatmentSupport: formData.treatmentSupport,
+      medication: formData.medication || undefined,
+      employments: employments.filter(e => e.workplace.trim()),
+      socialServices: socialServices.filter(s => s.name.trim()),
       updatedAt: new Date().toISOString(),
     };
 
@@ -222,49 +261,159 @@ export function EditClientDialog({ open, onOpenChange, client, onClientUpdated }
             )}
           </div>
 
+          <div className="space-y-4 p-4 border rounded-lg">
+            <h4 className="font-semibold">Stupeň invalidity</h4>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="disabilityLevel">Stupeň</Label>
+                <Select value={formData.disabilityLevel} onValueChange={(v) => setFormData({ ...formData, disabilityLevel: v })}>
+                  <SelectTrigger id="disabilityLevel">
+                    <SelectValue placeholder="Vyberte stupeň" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Bez invalidity</SelectItem>
+                    <SelectItem value="1">1. stupeň</SelectItem>
+                    <SelectItem value="2">2. stupeň</SelectItem>
+                    <SelectItem value="3">3. stupeň</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="disabilityBenefitAmount">Výše invalidního důchodu (Kč)</Label>
+                <Input
+                  id="disabilityBenefitAmount"
+                  type="number"
+                  value={formData.disabilityBenefitAmount}
+                  onChange={(e) => setFormData({ ...formData, disabilityBenefitAmount: e.target.value })}
+                  disabled={!formData.disabilityLevel}
+                  placeholder="např. 5000"
+                />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="disabilityWithBenefit"
+                checked={formData.disabilityWithBenefit}
+                onCheckedChange={(checked) => setFormData({ ...formData, disabilityWithBenefit: checked as boolean })}
+                disabled={!formData.disabilityLevel}
+              />
+              <Label htmlFor="disabilityWithBenefit" className="cursor-pointer">
+                S výplatou invalidního důchodu
+              </Label>
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="disability">Druh postižení</Label>
-            <Input
-              id="disability"
-              value={formData.disability}
-              onChange={(e) => setFormData({ ...formData, disability: e.target.value })}
-              placeholder="např. Mentální postižení, Kombinované postižení..."
+            <Label htmlFor="medication">Aktuální medikace</Label>
+            <Textarea
+              id="medication"
+              value={formData.medication}
+              onChange={(e) => setFormData({ ...formData, medication: e.target.value })}
+              placeholder="Uveďte aktuální léky, dávkování..."
+              rows={3}
             />
           </div>
 
           <div className="space-y-4 p-4 border rounded-lg">
-            <h4 className="font-semibold">Příspěvek na péči</h4>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="careLevel">Stupeň příspěvku</Label>
-                <Input
-                  id="careLevel"
-                  value={formData.careLevel}
-                  onChange={(e) => setFormData({ ...formData, careLevel: e.target.value })}
-                  placeholder="I, II, III, IV"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="careDateGranted">Datum přiznání</Label>
-                <Input
-                  id="careDateGranted"
-                  type="date"
-                  value={formData.careDateGranted}
-                  onChange={(e) => setFormData({ ...formData, careDateGranted: e.target.value })}
-                />
-              </div>
+            <div className="flex justify-between items-center">
+              <h4 className="font-semibold">Zaměstnání</h4>
+              <Button type="button" variant="outline" size="sm" onClick={addEmployment}>
+                <Plus className="h-4 w-4 mr-2" />
+                Přidat zaměstnání
+              </Button>
             </div>
+            {employments.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Zatím nejsou přidána žádná zaměstnání</p>
+            ) : (
+              <div className="space-y-3">
+                {employments.map((employment) => (
+                  <Card key={employment.id}>
+                    <CardContent className="p-4">
+                      <div className="flex gap-3">
+                        <div className="flex-1 space-y-3">
+                          <div className="space-y-2">
+                            <Label>Místo práce</Label>
+                            <Input
+                              value={employment.workplace}
+                              onChange={(e) => updateEmployment(employment.id, 'workplace', e.target.value)}
+                              placeholder="např. Chráněná dílna XY"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Příjem (Kč/měsíc)</Label>
+                            <Input
+                              type="number"
+                              value={employment.income || ''}
+                              onChange={(e) => updateEmployment(employment.id, 'income', e.target.value ? Number(e.target.value) : undefined)}
+                              placeholder="např. 8000"
+                            />
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeEmployment(employment.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="treatmentSupport"
-              checked={formData.treatmentSupport}
-              onCheckedChange={(checked) => setFormData({ ...formData, treatmentSupport: checked as boolean })}
-            />
-            <Label htmlFor="treatmentSupport" className="cursor-pointer">
-              Podpora léčby
-            </Label>
+          <div className="space-y-4 p-4 border rounded-lg">
+            <div className="flex justify-between items-center">
+              <h4 className="font-semibold">Jiné sociální služby</h4>
+              <Button type="button" variant="outline" size="sm" onClick={addSocialService}>
+                <Plus className="h-4 w-4 mr-2" />
+                Přidat službu
+              </Button>
+            </div>
+            {socialServices.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Zatím nejsou přidány žádné sociální služby</p>
+            ) : (
+              <div className="space-y-3">
+                {socialServices.map((service) => (
+                  <Card key={service.id}>
+                    <CardContent className="p-4">
+                      <div className="flex gap-3">
+                        <div className="flex-1 space-y-3">
+                          <div className="space-y-2">
+                            <Label>Název služby</Label>
+                            <Input
+                              value={service.name}
+                              onChange={(e) => updateSocialService(service.id, 'name', e.target.value)}
+                              placeholder="např. Denní stacionář ABC"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Poznámky</Label>
+                            <Textarea
+                              value={service.notes || ''}
+                              onChange={(e) => updateSocialService(service.id, 'notes', e.target.value)}
+                              placeholder="Dodatečné informace..."
+                              rows={2}
+                            />
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeSocialService(service.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
