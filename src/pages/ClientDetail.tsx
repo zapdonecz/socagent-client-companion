@@ -24,7 +24,7 @@ import {
   Square,
   AlertCircle
 } from 'lucide-react';
-import { getClients, saveEvent, getEvents, deleteEvent, getPlansByClientId, savePlan } from '@/lib/storage';
+import { getClients, saveEvent, getEvents, deleteEvent, getPlansByClientId, savePlan, saveClient } from '@/lib/storage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { 
@@ -46,6 +46,7 @@ import { RichTextEditor } from '@/components/RichTextEditor';
 import { getCurrentUser } from '@/lib/auth';
 import { Client, ClientNote, Meeting, PersonalPlan, PlanStep, SemiAnnualReview } from '@/types';
 import { ReviewDialog } from '@/components/ReviewDialog';
+import { EditClientDialog } from '@/components/EditClientDialog';
 import { addMonths, differenceInDays, format } from 'date-fns';
 import { cs } from 'date-fns/locale';
 
@@ -66,6 +67,7 @@ export default function ClientDetail() {
   const [events, setEvents] = useState<any[]>([]);
   const [plans, setPlans] = useState<PersonalPlan[]>([]);
   const [reviews, setReviews] = useState<SemiAnnualReview[]>([]);
+  const [editClientDialogOpen, setEditClientDialogOpen] = useState(false);
   
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [meetingDialogOpen, setMeetingDialogOpen] = useState(false);
@@ -100,6 +102,15 @@ export default function ClientDetail() {
       const clients = getClients();
       const foundClient = clients.find(c => c.id === id);
       setClient(foundClient || null);
+      loadClientData();
+    }
+  }, [id]);
+
+  const loadClientData = () => {
+    if (id) {
+      const clients = getClients();
+      const foundClient = clients.find(c => c.id === id);
+      setClient(foundClient || null);
       loadNotes();
       loadDocuments();
       loadMeetings();
@@ -107,7 +118,7 @@ export default function ClientDetail() {
       loadPlans();
       loadReviews();
     }
-  }, [id]);
+  };
 
   const loadNotes = () => {
     if (id) {
@@ -453,7 +464,16 @@ export default function ClientDetail() {
             </div>
           </div>
           
-          <Dialog open={meetingDialogOpen} onOpenChange={(open) => {
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setEditClientDialogOpen(true)}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Upravit informace
+            </Button>
+          
+            <Dialog open={meetingDialogOpen} onOpenChange={(open) => {
             setMeetingDialogOpen(open);
             if (!open) {
               setEditingMeeting(null);
@@ -504,6 +524,7 @@ export default function ClientDetail() {
             </DialogContent>
           </Dialog>
         </div>
+      </div>
       </div>
 
       <Card>
@@ -1371,6 +1392,14 @@ export default function ClientDetail() {
           }}
         />
       )}
+
+      {/* Edit Client Dialog */}
+      <EditClientDialog
+        open={editClientDialogOpen}
+        onOpenChange={setEditClientDialogOpen}
+        client={client}
+        onClientUpdated={loadClientData}
+      />
     </div>
   );
 }
