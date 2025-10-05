@@ -1660,36 +1660,47 @@ export default function ClientDetail() {
             <CardContent>
               {client && (
                 <>
-                  {/* Next Review Alert */}
+                  {/* Next Review Info - Always Visible */}
                   {(() => {
                     const nextDate = getNextReviewDate(client.contractDate, reviews);
                     const daysUntil = differenceInDays(nextDate, new Date());
                     
-                    if (daysUntil <= 30) {
-                      return (
-                        <div className={`p-4 rounded-lg mb-4 border ${
-                          daysUntil <= 0 
-                            ? 'bg-destructive/10 border-destructive' 
-                            : 'bg-warning/10 border-warning'
-                        }`}>
-                          <div className="flex items-center gap-2">
-                            <AlertCircle className={daysUntil <= 0 ? 'text-destructive' : 'text-warning'} />
-                            <div>
-                              <p className="font-medium">
-                                {daysUntil <= 0 
-                                  ? 'Hodnocení je po termínu!' 
-                                  : `Hodnocení je naplánováno za ${daysUntil} dní`
-                                }
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                Termín: {format(nextDate, 'dd. MM. yyyy', { locale: cs })}
-                              </p>
-                            </div>
+                    return (
+                      <div className={`p-4 rounded-lg mb-4 border ${
+                        daysUntil <= 0 
+                          ? 'bg-destructive/10 border-destructive' 
+                          : daysUntil <= 30
+                          ? 'bg-warning/10 border-warning'
+                          : 'bg-muted/50 border-border'
+                      }`}>
+                        <div className="flex items-center gap-3">
+                          <Clock className={
+                            daysUntil <= 0 
+                              ? 'text-destructive h-5 w-5' 
+                              : daysUntil <= 30
+                              ? 'text-warning h-5 w-5'
+                              : 'text-muted-foreground h-5 w-5'
+                          } />
+                          <div className="flex-1">
+                            <p className="font-medium">
+                              {daysUntil <= 0 
+                                ? 'Hodnocení je po termínu!' 
+                                : daysUntil === 0
+                                ? 'Hodnocení je dnes!'
+                                : daysUntil === 1
+                                ? 'Hodnocení je zítra'
+                                : daysUntil <= 30
+                                ? `Hodnocení za ${daysUntil} dní`
+                                : `Další hodnocení za ${daysUntil} dní`
+                              }
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Termín: {format(nextDate, 'dd. MM. yyyy', { locale: cs })}
+                            </p>
                           </div>
                         </div>
-                      );
-                    }
-                    return null;
+                      </div>
+                    );
                   })()}
 
                   {reviews.length === 0 ? (
