@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
+import ClientDetail from "./pages/ClientDetail";
 import Calendar from "./pages/Calendar";
 import Reviews from "./pages/Reviews";
 import Settings from "./pages/Settings";
@@ -67,6 +68,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Clients />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/clients/:id"
+            element={
+              <ProtectedRoute>
+                <ClientDetail />
               </ProtectedRoute>
             }
           />

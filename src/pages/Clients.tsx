@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +9,7 @@ import { AddClientDialog } from '@/components/AddClientDialog';
 import { Client } from '@/types';
 
 export default function Clients() {
+  const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
 
   const loadClients = () => {
@@ -84,7 +86,11 @@ export default function Clients() {
                         </div>
                       </div>
 
-                      <Button variant="outline" className="w-full mt-4">
+                      <Button 
+                        variant="outline" 
+                        className="w-full mt-4"
+                        onClick={() => navigate(`/clients/${client.id}`)}
+                      >
                         Zobrazit detail
                       </Button>
                     </div>
