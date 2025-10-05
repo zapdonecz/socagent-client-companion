@@ -21,7 +21,7 @@ import {
   Edit,
   Clock
 } from 'lucide-react';
-import { getClients, saveEvent, getEvents, deleteEvent } from '@/lib/storage';
+import { getClients, saveEvent, getEvents, deleteEvent, getPlansByClientId, savePlan } from '@/lib/storage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { 
@@ -37,7 +37,7 @@ import {
 } from '@/lib/extendedStorage';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import { getCurrentUser } from '@/lib/auth';
-import { Client, ClientNote, Meeting } from '@/types';
+import { Client, ClientNote, Meeting, PersonalPlan, PlanStep } from '@/types';
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
@@ -50,10 +50,18 @@ export default function ClientDetail() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [plans, setPlans] = useState<PersonalPlan[]>([]);
+  
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [meetingDialogOpen, setMeetingDialogOpen] = useState(false);
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
+  const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  
   const [editingNote, setEditingNote] = useState<ClientNote | null>(null);
+  const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
+  const [editingEvent, setEditingEvent] = useState<any | null>(null);
+  const [editingPlan, setEditingPlan] = useState<PersonalPlan | null>(null);
+  
   const [newNoteTitle, setNewNoteTitle] = useState('');
   const [newNoteContent, setNewNoteContent] = useState('');
   const [meetingTitle, setMeetingTitle] = useState('');
@@ -63,6 +71,12 @@ export default function ClientDetail() {
   const [eventTime, setEventTime] = useState('');
   const [eventType, setEventType] = useState<'meeting' | 'accompaniment' | 'other'>('meeting');
   const [eventNotes, setEventNotes] = useState('');
+  
+  // Plan state
+  const [planGoal, setPlanGoal] = useState('');
+  const [planImportance, setPlanImportance] = useState('');
+  const [planDeadline, setPlanDeadline] = useState('');
+  const [planSteps, setPlanSteps] = useState<PlanStep[]>([]);
 
   useEffect(() => {
     if (id) {
@@ -73,6 +87,7 @@ export default function ClientDetail() {
       loadDocuments();
       loadMeetings();
       loadEvents();
+      loadPlans();
     }
   }, [id]);
 
@@ -98,6 +113,12 @@ export default function ClientDetail() {
     if (id) {
       const allEvents = getEvents();
       setEvents(allEvents.filter((e: any) => e.clientId === id));
+    }
+  };
+
+  const loadPlans = () => {
+    if (id) {
+      setPlans(getPlansByClientId(id));
     }
   };
 
@@ -161,35 +182,56 @@ export default function ClientDetail() {
   const handleStartMeeting = () => {
     if (!meetingTitle || !meetingContent || !id || !user) return;
 
-    const meeting: Meeting = {
-      id: Date.now().toString(),
-      clientId: id,
-      title: meetingTitle,
-      content: meetingContent,
-      startTime: new Date().toISOString(),
-      createdBy: user.name,
-      participants: [user.name],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    if (editingMeeting) {
+      const updatedMeeting: Meeting = {
+        ...editingMeeting,
+        title: meetingTitle,
+        content: meetingContent,
+        updatedAt: new Date().toISOString(),
+      };
+      saveMeeting(updatedMeeting);
+      setEditingMeeting(null);
+      toast({
+        title: 'Zápis upraven',
+        description: 'Změny byly úspěšně uloženy',
+      });
+    } else {
+      const meeting: Meeting = {
+        id: Date.now().toString(),
+        clientId: id,
+        title: meetingTitle,
+        content: meetingContent,
+        startTime: new Date().toISOString(),
+        createdBy: user.name,
+        participants: [user.name],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      saveMeeting(meeting);
+      toast({
+        title: 'Schůzka uložena',
+        description: 'Zápis ze schůzky byl úspěšně uložen',
+      });
+    }
 
-    saveMeeting(meeting);
     loadMeetings();
     setMeetingTitle('');
     setMeetingContent('');
     setMeetingDialogOpen(false);
+  };
 
-    toast({
-      title: 'Schůzka uložena',
-      description: 'Zápis ze schůzky byl úspěšně uložen',
-    });
+  const handleEditMeeting = (meeting: Meeting) => {
+    setEditingMeeting(meeting);
+    setMeetingTitle(meeting.title);
+    setMeetingContent(meeting.content);
+    setMeetingDialogOpen(true);
   };
 
   const handleAddEvent = () => {
     if (!eventTitle || !eventDate || !id || !user) return;
 
-    const event = {
-      id: Date.now().toString(),
+    const eventData = {
+      id: editingEvent?.id || Date.now().toString(),
       clientId: id,
       clientName: `${client?.firstName} ${client?.lastName}`,
       title: eventTitle,
@@ -200,17 +242,118 @@ export default function ClientDetail() {
       createdBy: user.name,
     };
 
-    saveEvent(event);
+    saveEvent(eventData);
     loadEvents();
     setEventTitle('');
     setEventDate('');
     setEventTime('');
     setEventNotes('');
+    setEditingEvent(null);
     setEventDialogOpen(false);
 
     toast({
-      title: 'Událost naplánována',
-      description: 'Schůzka byla přidána do kalendáře',
+      title: editingEvent ? 'Událost upravena' : 'Událost naplánována',
+      description: editingEvent ? 'Změny byly úspěšně uloženy' : 'Schůzka byla přidána do kalendáře',
+    });
+  };
+
+  const handleEditEvent = (event: any) => {
+    setEditingEvent(event);
+    setEventTitle(event.title);
+    setEventType(event.type);
+    setEventDate(event.date.split('T')[0]);
+    setEventTime(event.date.split('T')[1]?.substring(0, 5) || '');
+    setEventNotes(event.notes || '');
+    setEventDialogOpen(true);
+  };
+
+  const handleAddPlan = () => {
+    if (!planGoal || !planImportance || !id || !user) return;
+
+    if (editingPlan) {
+      const updatedPlan: PersonalPlan = {
+        ...editingPlan,
+        goal: planGoal,
+        importance: planImportance,
+        deadline: planDeadline || undefined,
+        steps: planSteps,
+        updatedAt: new Date().toISOString(),
+      };
+      savePlan(updatedPlan);
+      setEditingPlan(null);
+      toast({
+        title: 'Plán upraven',
+        description: 'Změny byly úspěšně uloženy',
+      });
+    } else {
+      const plan: PersonalPlan = {
+        id: Date.now().toString(),
+        clientId: id,
+        goal: planGoal,
+        importance: planImportance,
+        deadline: planDeadline || undefined,
+        status: 'active',
+        steps: planSteps,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      savePlan(plan);
+      toast({
+        title: 'Plán přidán',
+        description: 'Osobní plán byl úspěšně vytvořen',
+      });
+    }
+
+    loadPlans();
+    setPlanGoal('');
+    setPlanImportance('');
+    setPlanDeadline('');
+    setPlanSteps([]);
+    setPlanDialogOpen(false);
+  };
+
+  const handleEditPlan = (plan: PersonalPlan) => {
+    setEditingPlan(plan);
+    setPlanGoal(plan.goal);
+    setPlanImportance(plan.importance);
+    setPlanDeadline(plan.deadline || '');
+    setPlanSteps(plan.steps);
+    setPlanDialogOpen(true);
+  };
+
+  const handleAddPlanStep = () => {
+    const newStep: PlanStep = {
+      id: Date.now().toString(),
+      clientAction: '',
+      othersAction: '',
+      deadline: '',
+      completed: false,
+      notes: '',
+    };
+    setPlanSteps([...planSteps, newStep]);
+  };
+
+  const handleUpdatePlanStep = (stepId: string, field: keyof PlanStep, value: any) => {
+    setPlanSteps(planSteps.map(step => 
+      step.id === stepId ? { ...step, [field]: value } : step
+    ));
+  };
+
+  const handleDeletePlanStep = (stepId: string) => {
+    setPlanSteps(planSteps.filter(step => step.id !== stepId));
+  };
+
+  const handleTogglePlanStatus = (plan: PersonalPlan) => {
+    const updatedPlan = {
+      ...plan,
+      status: plan.status === 'active' ? 'completed' : 'active' as 'active' | 'completed',
+      updatedAt: new Date().toISOString(),
+    };
+    savePlan(updatedPlan);
+    loadPlans();
+    toast({
+      title: plan.status === 'active' ? 'Plán dokončen' : 'Plán obnoven',
+      description: plan.status === 'active' ? 'Plán byl označen jako dokončený' : 'Plán byl obnoven',
     });
   };
 
@@ -267,7 +410,14 @@ export default function ClientDetail() {
             </div>
           </div>
           
-          <Dialog open={meetingDialogOpen} onOpenChange={setMeetingDialogOpen}>
+          <Dialog open={meetingDialogOpen} onOpenChange={(open) => {
+            setMeetingDialogOpen(open);
+            if (!open) {
+              setEditingMeeting(null);
+              setMeetingTitle('');
+              setMeetingContent('');
+            }
+          }}>
             <DialogTrigger asChild>
               <Button className="gradient-primary">
                 <Video className="mr-2 h-4 w-4" />
@@ -276,9 +426,9 @@ export default function ClientDetail() {
             </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Zápis ze schůzky</DialogTitle>
+                <DialogTitle>{editingMeeting ? 'Upravit zápis' : 'Zápis ze schůzky'}</DialogTitle>
                 <DialogDescription>
-                  Pořiďte si poznámky během schůzky s klientem
+                  {editingMeeting ? 'Upravte zápis ze schůzky' : 'Pořiďte si poznámky během schůzky s klientem'}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
@@ -532,19 +682,219 @@ export default function ClientDetail() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="plans">
+        <TabsContent value="plans" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Osobní plány</CardTitle>
-              <CardDescription>
-                Individuální plány klienta
-              </CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Osobní plány</CardTitle>
+                  <CardDescription>
+                    Individuální plány a cíle klienta
+                  </CardDescription>
+                </div>
+                <Dialog open={planDialogOpen} onOpenChange={(open) => {
+                  setPlanDialogOpen(open);
+                  if (!open) {
+                    setEditingPlan(null);
+                    setPlanGoal('');
+                    setPlanImportance('');
+                    setPlanDeadline('');
+                    setPlanSteps([]);
+                  }
+                }}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Nový plán
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>{editingPlan ? 'Upravit plán' : 'Vytvořit osobní plán'}</DialogTitle>
+                      <DialogDescription>
+                        {editingPlan ? 'Upravte cíl a kroky plánu' : 'Definujte cíl klienta a kroky k jeho dosažení'}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="planGoal">Cíl</Label>
+                        <Textarea
+                          id="planGoal"
+                          placeholder="Co chce klient dosáhnout?"
+                          value={planGoal}
+                          onChange={(e) => setPlanGoal(e.target.value)}
+                          rows={2}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="planImportance">Proč je to pro klienta důležité?</Label>
+                        <Textarea
+                          id="planImportance"
+                          placeholder="Důvod a význam cíle..."
+                          value={planImportance}
+                          onChange={(e) => setPlanImportance(e.target.value)}
+                          rows={2}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="planDeadline">Termín (nepovinné)</Label>
+                        <Input
+                          id="planDeadline"
+                          type="date"
+                          value={planDeadline}
+                          onChange={(e) => setPlanDeadline(e.target.value)}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <Label>Kroky k dosažení cíle</Label>
+                          <Button type="button" size="sm" variant="outline" onClick={handleAddPlanStep}>
+                            <Plus className="h-4 w-4 mr-1" />
+                            Přidat krok
+                          </Button>
+                        </div>
+                        {planSteps.length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            Zatím nejsou definovány žádné kroky
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {planSteps.map((step, index) => (
+                              <Card key={step.id}>
+                                <CardContent className="p-4 space-y-3">
+                                  <div className="flex justify-between items-center">
+                                    <h4 className="font-semibold">Krok {index + 1}</h4>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDeletePlanStep(step.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label>Co udělá klient?</Label>
+                                    <Textarea
+                                      placeholder="Akce klienta..."
+                                      value={step.clientAction}
+                                      onChange={(e) => handleUpdatePlanStep(step.id, 'clientAction', e.target.value)}
+                                      rows={2}
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label>Co udělají ostatní?</Label>
+                                    <Textarea
+                                      placeholder="Podpora od pracovníka, rodiny..."
+                                      value={step.othersAction}
+                                      onChange={(e) => handleUpdatePlanStep(step.id, 'othersAction', e.target.value)}
+                                      rows={2}
+                                    />
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                      <Label>Termín</Label>
+                                      <Input
+                                        type="date"
+                                        value={step.deadline}
+                                        onChange={(e) => handleUpdatePlanStep(step.id, 'deadline', e.target.value)}
+                                      />
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label>Poznámky</Label>
+                                      <Input
+                                        placeholder="Dodatečné poznámky..."
+                                        value={step.notes}
+                                        onChange={(e) => handleUpdatePlanStep(step.id, 'notes', e.target.value)}
+                                      />
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setPlanDialogOpen(false)}>
+                          Zrušit
+                        </Button>
+                        <Button onClick={handleAddPlan}>
+                          {editingPlan ? 'Uložit změny' : 'Vytvořit plán'}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Plány budou brzy k dispozici</p>
-              </div>
+              {plans.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Zatím nejsou vytvořeny žádné plány</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {plans.map(plan => (
+                    <Card key={plan.id} className={plan.status === 'completed' ? 'opacity-70' : ''}>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-semibold">{plan.goal}</h4>
+                              <Badge variant={plan.status === 'completed' ? 'secondary' : 'default'}>
+                                {plan.status === 'completed' ? 'Dokončeno' : 'Aktivní'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-2">{plan.importance}</p>
+                            {plan.deadline && (
+                              <p className="text-xs text-muted-foreground">
+                                Termín: {new Date(plan.deadline).toLocaleDateString('cs-CZ')}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleTogglePlanStatus(plan)}
+                            >
+                              {plan.status === 'completed' ? '↻' : '✓'}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditPlan(plan)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        {plan.steps.length > 0 && (
+                          <div className="space-y-2 mt-3">
+                            <p className="text-sm font-medium">Kroky:</p>
+                            {plan.steps.map((step, index) => (
+                              <div key={step.id} className="text-sm pl-4 border-l-2 border-muted">
+                                <p className="font-medium">Krok {index + 1}</p>
+                                <p className="text-muted-foreground">Klient: {step.clientAction}</p>
+                                {step.othersAction && (
+                                  <p className="text-muted-foreground">Ostatní: {step.othersAction}</p>
+                                )}
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Termín: {new Date(step.deadline).toLocaleDateString('cs-CZ')}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -578,11 +928,18 @@ export default function ClientDetail() {
                               {meeting.createdBy} • {new Date(meeting.startTime).toLocaleString('cs-CZ')}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
                             <Badge variant="secondary">
                               <Clock className="h-3 w-3 mr-1" />
                               Schůzka
                             </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditMeeting(meeting)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -622,7 +979,16 @@ export default function ClientDetail() {
                     Schůzky, události s klientem
                   </CardDescription>
                 </div>
-                <Dialog open={eventDialogOpen} onOpenChange={setEventDialogOpen}>
+                <Dialog open={eventDialogOpen} onOpenChange={(open) => {
+                  setEventDialogOpen(open);
+                  if (!open) {
+                    setEditingEvent(null);
+                    setEventTitle('');
+                    setEventDate('');
+                    setEventTime('');
+                    setEventNotes('');
+                  }
+                }}>
                   <DialogTrigger asChild>
                     <Button>
                       <Plus className="mr-2 h-4 w-4" />
@@ -631,9 +997,9 @@ export default function ClientDetail() {
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                      <DialogTitle>Naplánovat událost</DialogTitle>
+                      <DialogTitle>{editingEvent ? 'Upravit událost' : 'Naplánovat událost'}</DialogTitle>
                       <DialogDescription>
-                        Vytvořte schůzku nebo událost s klientem
+                        {editingEvent ? 'Upravte naplánovanou událost' : 'Vytvořte schůzku nebo událost s klientem'}
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
@@ -674,7 +1040,7 @@ export default function ClientDetail() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="meeting">Schůzka</SelectItem>
-                            <SelectItem value="event">Událost s klientem</SelectItem>
+                            <SelectItem value="accompaniment">Doprovod</SelectItem>
                             <SelectItem value="other">Jiné</SelectItem>
                           </SelectContent>
                         </Select>
@@ -716,7 +1082,7 @@ export default function ClientDetail() {
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="font-medium">{event.title}</h4>
                           <Badge variant="outline">
-                            {event.type === 'meeting' ? 'Schůzka' : event.type === 'event' ? 'Událost s klientem' : 'Jiné'}
+                            {event.type === 'meeting' ? 'Schůzka' : event.type === 'accompaniment' ? 'Doprovod' : 'Jiné'}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
@@ -726,20 +1092,29 @@ export default function ClientDetail() {
                           <p className="text-sm text-muted-foreground mt-1">{event.notes}</p>
                         )}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          deleteEvent(event.id);
-                          loadEvents();
-                          toast({
-                            title: 'Událost smazána',
-                            description: 'Událost byla odstraněna z kalendáře',
-                          });
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditEvent(event)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            deleteEvent(event.id);
+                            loadEvents();
+                            toast({
+                              title: 'Událost smazána',
+                              description: 'Událost byla odstraněna z kalendáře',
+                            });
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
