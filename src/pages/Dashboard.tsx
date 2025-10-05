@@ -225,13 +225,13 @@ export default function Dashboard() {
                 {upcomingDeadlines.slice(0, 5).map(plan => {
                   const daysUntil = differenceInDays(parseISO(plan.deadline!), new Date());
                   return (
-                    <div 
-                      key={plan.id} 
-                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
-                      onClick={() => navigate(`/clients/${plan.clientId}`)}
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium text-sm line-clamp-1">{plan.goal}</p>
+                <div 
+                  key={plan.id} 
+                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                  onClick={() => navigate(`/clients/${plan.clientId}?tab=plans`)}
+                >
+                  <div className="flex-1">
+                    <p className="font-medium text-sm line-clamp-1">{plan.goal}</p>
                         <p className="text-xs text-muted-foreground">{getClientName(plan.clientId)}</p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -266,12 +266,12 @@ export default function Dashboard() {
                 {upcomingStepDeadlines.slice(0, 5).map(({ plan, step, clientName }, index) => {
                   const daysUntil = differenceInDays(parseISO(step.deadline), new Date());
                   return (
-                    <div 
-                      key={`${plan.id}-${step.id}`} 
-                      className="p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
-                      onClick={() => navigate(`/clients/${plan.clientId}`)}
-                    >
-                      <div className="flex items-start justify-between gap-2">
+                  <div 
+                    key={`${plan.id}-${step.id}`} 
+                    className="p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                    onClick={() => navigate(`/clients/${plan.clientId}?tab=plans`)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
                         <div className="flex-1">
                           <p className="font-medium text-sm line-clamp-1">{step.clientAction}</p>
                           <p className="text-xs text-muted-foreground">{clientName} • {plan.goal}</p>

@@ -20,8 +20,9 @@ import {
   X
 } from 'lucide-react';
 import { getEvents, saveEvent, deleteEvent, getClients } from '@/lib/storage';
+import { getTasks } from '@/lib/extendedStorage';
 import { getCurrentUser } from '@/lib/auth';
-import { CalendarEvent, Client } from '@/types';
+import { CalendarEvent, Client, Task } from '@/types';
 import { format, isSameDay, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { cs } from 'date-fns/locale';
 
@@ -30,7 +31,9 @@ export default function Calendar() {
   const user = getCurrentUser();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<CalendarEvent[]>([]);
+  const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
@@ -50,29 +53,33 @@ export default function Calendar() {
 
   useEffect(() => {
     loadEvents();
+    setTasks(getTasks());
     setClients(getClients());
   }, []);
 
   useEffect(() => {
     applyFilters();
-  }, [events, filterType, filterClient]);
+  }, [events, tasks, filterType, filterClient]);
 
   const loadEvents = () => {
     setEvents(getEvents());
   };
 
   const applyFilters = () => {
-    let filtered = [...events];
+    let filteredEvts = [...events];
+    let filteredTsks = [...tasks];
     
     if (filterType !== 'all') {
-      filtered = filtered.filter(e => e.type === filterType);
+      filteredEvts = filteredEvts.filter(e => e.type === filterType);
     }
     
     if (filterClient !== 'all') {
-      filtered = filtered.filter(e => filterClient === 'none' ? !e.clientId : e.clientId === filterClient);
+      filteredEvts = filteredEvts.filter(e => filterClient === 'none' ? !e.clientId : e.clientId === filterClient);
+      filteredTsks = filteredTsks.filter(t => filterClient === 'none' ? !t.clientId : t.clientId === filterClient);
     }
     
-    setFilteredEvents(filtered);
+    setFilteredEvents(filteredEvts);
+    setFilteredTasks(filteredTsks);
   };
 
   const getDayEvents = (date: Date) => {
@@ -81,10 +88,20 @@ export default function Calendar() {
     );
   };
 
+  const getDayTasks = (date: Date) => {
+    return filteredTasks.filter(task => 
+      task.dueDate && isSameDay(parseISO(task.dueDate), date)
+    );
+  };
+
   const getSelectedDateEvents = () => {
     return getDayEvents(selectedDate).sort((a, b) => 
       new Date(a.date).getTime() - new Date(b.date).getTime()
     );
+  };
+
+  const getSelectedDateTasks = () => {
+    return getDayTasks(selectedDate);
   };
 
   const handleAddEvent = () => {
@@ -170,7 +187,7 @@ export default function Calendar() {
   };
 
   const modifiers = {
-    hasEvents: (date: Date) => getDayEvents(date).length > 0,
+    hasEvents: (date: Date) => getDayEvents(date).length > 0 || getDayTasks(date).length > 0,
   };
 
   const modifiersClassNames = {
@@ -396,13 +413,14 @@ export default function Calendar() {
             </CardTitle>
             <CardDescription>
               {getSelectedDateEvents().length} {getSelectedDateEvents().length === 1 ? 'událost' : getSelectedDateEvents().length < 5 ? 'události' : 'událostí'}
+              {getSelectedDateTasks().length > 0 && ` • ${getSelectedDateTasks().length} ${getSelectedDateTasks().length === 1 ? 'úkol' : 'úkoly'}`}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {getSelectedDateEvents().length === 0 ? (
+            {getSelectedDateEvents().length === 0 && getSelectedDateTasks().length === 0 ? (
               <div className="text-center py-8">
                 <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Žádné události</p>
+                <p className="text-muted-foreground">Žádné události ani úkoly</p>
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -417,7 +435,7 @@ export default function Calendar() {
                 </Button>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {getSelectedDateEvents().map(event => (
                   <Card key={event.id} className="hover-lift">
                     <CardContent className="p-4">
@@ -468,6 +486,49 @@ export default function Calendar() {
                     </CardContent>
                   </Card>
                 ))}
+
+                {/* Tasks */}
+                {getSelectedDateTasks().length > 0 && (
+                  <>
+                    <div className="pt-4 border-t">
+                      <h4 className="font-semibold text-sm mb-3">Úkoly</h4>
+                    </div>
+                    {getSelectedDateTasks().map(task => (
+                      <Card key={task.id} className="hover-lift border-l-4 border-l-primary">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-semibold text-sm">{task.title}</h4>
+                                <Badge variant={
+                                  task.priority === 'high' ? 'destructive' : 
+                                  task.priority === 'medium' ? 'default' : 
+                                  'secondary'
+                                }>
+                                  {task.priority === 'high' ? 'Vysoká' : task.priority === 'medium' ? 'Střední' : 'Nízká'}
+                                </Badge>
+                              </div>
+                              {task.description && (
+                                <p className="text-xs text-muted-foreground mb-2">{task.description}</p>
+                              )}
+                              <div className="flex items-center gap-2 text-xs">
+                                {task.clientName && (
+                                  <div className="flex items-center gap-1 text-muted-foreground">
+                                    <User className="h-3 w-3" />
+                                    {task.clientName}
+                                  </div>
+                                )}
+                                <Badge variant="outline" className="text-xs">
+                                  {task.status === 'todo' ? 'Čeká' : task.status === 'in-progress' ? 'Probíhá' : 'Hotovo'}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </>
+                )}
               </div>
             )}
           </CardContent>
