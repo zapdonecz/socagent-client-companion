@@ -6,9 +6,22 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { login, register, loginSchema, registerSchema } from '@/lib/auth';
-import { importData } from '@/lib/dataExport';
-import { Upload } from 'lucide-react';
+import { login, register, loginSchema, registerSchema, getAllUsers, deleteUser } from '@/lib/auth';
+import { importData, downloadDataAsJSON } from '@/lib/dataExport';
+import { Upload, Download, Trash2, Shield, User as UserIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { User } from '@/types';
 
 export default function Login() {
   const [loginEmail, setLoginEmail] = useState('');
@@ -20,6 +33,8 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [users, setUsers] = useState<User[]>(getAllUsers());
+  const [showUserManagement, setShowUserManagement] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -143,6 +158,40 @@ export default function Login() {
     }
   };
 
+  const handleExport = () => {
+    try {
+      downloadDataAsJSON();
+      toast({
+        title: 'Export úspěšný',
+        description: 'Data byla exportována do JSON souboru',
+      });
+    } catch (error) {
+      toast({
+        title: 'Chyba při exportu',
+        description: 'Nepodařilo se exportovat data',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteUser = (userId: string) => {
+    const result = deleteUser(userId);
+    
+    if (result.success) {
+      setUsers(getAllUsers());
+      toast({
+        title: 'Uživatel smazán',
+        description: 'Uživatel byl úspěšně odstraněn',
+      });
+    } else {
+      toast({
+        title: 'Chyba při mazání',
+        description: result.error || 'Nepodařilo se smazat uživatele',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
       <Card className="w-full max-w-md shadow-medium">
@@ -251,16 +300,26 @@ export default function Login() {
             </TabsContent>
           </Tabs>
           
-          <div className="mt-6">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isImporting}
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              {isImporting ? 'Importuji data...' : 'Importovat data ze zálohy'}
-            </Button>
+          <div className="mt-6 space-y-3">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isImporting}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Import
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={handleExport}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </Button>
+            </div>
             <input
               ref={fileInputRef}
               type="file"
@@ -268,10 +327,80 @@ export default function Login() {
               onChange={handleImport}
               className="hidden"
             />
-            <p className="text-xs text-muted-foreground text-center mt-2">
-              Importujte zálohu dat z jiného počítače
-            </p>
+            
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={() => setShowUserManagement(!showUserManagement)}
+            >
+              {showUserManagement ? 'Skrýt správu uživatelů' : 'Zobrazit správu uživatelů'}
+            </Button>
           </div>
+
+          {showUserManagement && (
+            <div className="mt-6 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b">
+                <h3 className="font-semibold">Správa uživatelů</h3>
+                <Button variant="ghost" size="sm" onClick={() => setUsers(getAllUsers())}>
+                  Obnovit
+                </Button>
+              </div>
+              {users.map(user => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      {user.role === 'admin' ? (
+                        <Shield className="h-4 w-4 text-primary" />
+                      ) : (
+                        <UserIcon className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{user.name}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={user.role === 'admin' ? 'default' : 'outline'} className="text-xs">
+                      {user.role === 'admin' ? 'Admin' : 'Pracovník'}
+                    </Badge>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Smazat uživatele?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Opravdu chcete smazat uživatele {user.name}? Tato akce je nevratná.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Zrušit</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => handleDeleteUser(user.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Smazat
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              ))}
+              {users.length === 0 && (
+                <p className="text-center text-sm text-muted-foreground py-4">
+                  Žádní uživatelé nenalezeni
+                </p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
