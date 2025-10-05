@@ -21,7 +21,7 @@ import {
   Edit,
   Clock
 } from 'lucide-react';
-import { getClients, saveEvent, getEvents } from '@/lib/storage';
+import { getClients, saveEvent, getEvents, deleteEvent } from '@/lib/storage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { 
@@ -32,7 +32,8 @@ import {
   saveDocument,
   deleteDocument,
   saveMeeting,
-  getMeetingsByClientId
+  getMeetingsByClientId,
+  deleteMeeting
 } from '@/lib/extendedStorage';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import { getCurrentUser } from '@/lib/auth';
@@ -571,16 +572,32 @@ export default function ClientDetail() {
                     <Card key={meeting.id}>
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-2">
-                          <div>
+                          <div className="flex-1">
                             <h4 className="font-semibold">{meeting.title}</h4>
                             <p className="text-xs text-muted-foreground">
                               {meeting.createdBy} • {new Date(meeting.startTime).toLocaleString('cs-CZ')}
                             </p>
                           </div>
-                          <Badge variant="secondary">
-                            <Clock className="h-3 w-3 mr-1" />
-                            Schůzka
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">
+                              <Clock className="h-3 w-3 mr-1" />
+                              Schůzka
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                deleteMeeting(meeting.id);
+                                loadMeetings();
+                                toast({
+                                  title: 'Zápis smazán',
+                                  description: 'Zápis ze schůzky byl odstraněn',
+                                });
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
                         </div>
                         <div 
                           className="prose prose-sm max-w-none mt-3"
@@ -602,7 +619,7 @@ export default function ClientDetail() {
                 <div>
                   <CardTitle>Naplánované události</CardTitle>
                   <CardDescription>
-                    Schůzky a doprovody s klientem
+                    Schůzky, události s klientem
                   </CardDescription>
                 </div>
                 <Dialog open={eventDialogOpen} onOpenChange={setEventDialogOpen}>
@@ -616,7 +633,7 @@ export default function ClientDetail() {
                     <DialogHeader>
                       <DialogTitle>Naplánovat událost</DialogTitle>
                       <DialogDescription>
-                        Vytvořte schůzku nebo doprovod s klientem
+                        Vytvořte schůzku nebo událost s klientem
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
@@ -657,7 +674,7 @@ export default function ClientDetail() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="meeting">Schůzka</SelectItem>
-                            <SelectItem value="accompaniment">Doprovod</SelectItem>
+                            <SelectItem value="event">Událost s klientem</SelectItem>
                             <SelectItem value="other">Jiné</SelectItem>
                           </SelectContent>
                         </Select>
@@ -699,7 +716,7 @@ export default function ClientDetail() {
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="font-medium">{event.title}</h4>
                           <Badge variant="outline">
-                            {event.type === 'meeting' ? 'Schůzka' : event.type === 'accompaniment' ? 'Doprovod' : 'Jiné'}
+                            {event.type === 'meeting' ? 'Schůzka' : event.type === 'event' ? 'Událost s klientem' : 'Jiné'}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
@@ -709,6 +726,20 @@ export default function ClientDetail() {
                           <p className="text-sm text-muted-foreground mt-1">{event.notes}</p>
                         )}
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          deleteEvent(event.id);
+                          loadEvents();
+                          toast({
+                            title: 'Událost smazána',
+                            description: 'Událost byla odstraněna z kalendáře',
+                          });
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                   ))}
                 </div>
