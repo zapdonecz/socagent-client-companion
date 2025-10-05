@@ -159,7 +159,10 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="hover-lift shadow-soft border-l-4 border-l-accent">
+        <Card 
+          className="hover-lift shadow-soft border-l-4 border-l-accent cursor-pointer"
+          onClick={() => navigate('/clients')}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Klienti</CardTitle>
             <Users className="h-4 w-4 text-accent" />
@@ -214,7 +217,11 @@ export default function Dashboard() {
                 {upcomingDeadlines.slice(0, 5).map(plan => {
                   const daysUntil = differenceInDays(parseISO(plan.deadline!), new Date());
                   return (
-                    <div key={plan.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+                    <div 
+                      key={plan.id} 
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                      onClick={() => navigate(`/clients/${plan.clientId}`)}
+                    >
                       <div className="flex-1">
                         <p className="font-medium text-sm line-clamp-1">{plan.goal}</p>
                         <p className="text-xs text-muted-foreground">{getClientName(plan.clientId)}</p>
@@ -251,7 +258,11 @@ export default function Dashboard() {
                 {upcomingStepDeadlines.slice(0, 5).map(({ plan, step, clientName }, index) => {
                   const daysUntil = differenceInDays(parseISO(step.deadline), new Date());
                   return (
-                    <div key={`${plan.id}-${step.id}`} className="p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+                    <div 
+                      key={`${plan.id}-${step.id}`} 
+                      className="p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                      onClick={() => navigate(`/clients/${plan.clientId}`)}
+                    >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1">
                           <p className="font-medium text-sm line-clamp-1">{step.clientAction}</p>
@@ -332,9 +343,16 @@ export default function Dashboard() {
             <CardContent>
               <div className="space-y-2">
                 {clientsNeedingReview.slice(0, 5).map(client => (
-                  <div key={client.id} className="flex justify-between items-center p-3 bg-destructive/5 border border-destructive/20 rounded-lg">
+                  <div 
+                    key={client.id} 
+                    className="flex justify-between items-center p-3 bg-destructive/5 border border-destructive/20 rounded-lg cursor-pointer hover:bg-destructive/10 transition-colors"
+                    onClick={() => navigate(`/clients/${client.id}`)}
+                  >
                     <span className="font-medium text-sm">{client.firstName} {client.lastName}</span>
-                    <Button size="sm" variant="outline" onClick={() => navigate(`/clients`)}>
+                    <Button size="sm" variant="outline" onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/clients/${client.id}`);
+                    }}>
                       Zobrazit
                     </Button>
                   </div>
@@ -358,9 +376,16 @@ export default function Dashboard() {
             <CardContent>
               <div className="space-y-2">
                 {clientsNeedingPlanning.slice(0, 5).map(client => (
-                  <div key={client.id} className="flex justify-between items-center p-3 bg-accent/5 border border-accent/20 rounded-lg">
+                  <div 
+                    key={client.id} 
+                    className="flex justify-between items-center p-3 bg-accent/5 border border-accent/20 rounded-lg cursor-pointer hover:bg-accent/10 transition-colors"
+                    onClick={() => navigate(`/clients/${client.id}`)}
+                  >
                     <span className="font-medium text-sm">{client.firstName} {client.lastName}</span>
-                    <Button size="sm" variant="outline" onClick={() => navigate(`/clients`)}>
+                    <Button size="sm" variant="outline" onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/clients/${client.id}`);
+                    }}>
                       Zobrazit
                     </Button>
                   </div>
