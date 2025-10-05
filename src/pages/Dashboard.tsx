@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [clientsNeedingPlanning, setClientsNeedingPlanning] = useState<Client[]>([]);
   const [upcomingDeadlines, setUpcomingDeadlines] = useState<PersonalPlan[]>([]);
   const [upcomingStepDeadlines, setUpcomingStepDeadlines] = useState<{plan: PersonalPlan, step: PlanStep, clientName: string}[]>([]);
+  const [plansWithoutActiveSteps, setPlansWithoutActiveSteps] = useState<{plan: PersonalPlan, clientName: string}[]>([]);
   const [upcomingEventsData, setUpcomingEventsData] = useState<CalendarEvent[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([]);
 
@@ -102,6 +103,21 @@ export default function Dashboard() {
       return dateA.getTime() - dateB.getTime();
     });
     setUpcomingStepDeadlines(upcomingSteps);
+
+    // Plans without active steps
+    const plansWithoutSteps: {plan: PersonalPlan, clientName: string}[] = [];
+    allPlans.forEach(plan => {
+      if (plan.status === 'active') {
+        const hasActiveSteps = plan.steps.some(step => !step.completed && step.deadline);
+        if (!hasActiveSteps) {
+          plansWithoutSteps.push({
+            plan,
+            clientName: getClientName(plan.clientId)
+          });
+        }
+      }
+    });
+    setPlansWithoutActiveSteps(plansWithoutSteps);
 
     // Upcoming events (configurable days)
     const events = getEvents();
@@ -286,6 +302,43 @@ export default function Dashboard() {
                         </div>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {plansWithoutActiveSteps.length > 0 && (
+          <Card className="shadow-medium border-t-4 border-t-destructive">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+                <CardTitle>Plány bez aktivních kroků</CardTitle>
+              </div>
+              <CardDescription>
+                Plány, které nemají žádný aktivní krok nebo termín
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {plansWithoutActiveSteps.slice(0, 5).map(({ plan, clientName }) => {
+                  return (
+                  <div 
+                    key={plan.id} 
+                    className="p-3 bg-destructive/5 border border-destructive/20 rounded-lg hover:bg-destructive/10 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/clients/${plan.clientId}?tab=plans`)}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex-1">
+                        <p className="font-medium text-sm line-clamp-1">{plan.goal}</p>
+                        <p className="text-xs text-muted-foreground">{clientName}</p>
+                      </div>
+                      <Badge variant="destructive">
+                        Bez aktivních kroků
+                      </Badge>
+                    </div>
+                  </div>
                   );
                 })}
               </div>

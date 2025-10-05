@@ -1327,16 +1327,26 @@ export default function ClientDetail() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {plans.map(plan => (
-                    <Card key={plan.id} className={plan.status === 'completed' ? 'opacity-70' : ''}>
+                  {plans.map(plan => {
+                    const hasActiveSteps = plan.steps.some(step => !step.completed && step.deadline);
+                    const isActiveWithoutSteps = plan.status === 'active' && !hasActiveSteps;
+                    
+                    return (
+                    <Card key={plan.id} className={`${plan.status === 'completed' ? 'opacity-70' : ''} ${isActiveWithoutSteps ? 'border-destructive border-2' : ''}`}>
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <h4 className="font-semibold">{plan.goal}</h4>
                               <Badge variant={plan.status === 'completed' ? 'secondary' : 'default'}>
                                 {plan.status === 'completed' ? 'Dokončeno' : 'Aktivní'}
                               </Badge>
+                              {isActiveWithoutSteps && (
+                                <Badge variant="destructive" className="gap-1">
+                                  <AlertCircle className="h-3 w-3" />
+                                  Bez aktivních kroků
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-sm text-muted-foreground mb-2">{plan.importance}</p>
                             {plan.deadline && (
@@ -1401,7 +1411,8 @@ export default function ClientDetail() {
                         )}
                       </CardContent>
                     </Card>
-                  ))}
+                  );
+                  })}
                 </div>
               )}
             </CardContent>
