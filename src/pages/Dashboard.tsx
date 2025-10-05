@@ -6,8 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Calendar as CalendarIcon, Users, FileText, Clock, Target, LogOut } from 'lucide-react';
 import { getCurrentUser, logout } from '@/lib/auth';
 import { getClients, getProfiles, getPlansByClientId, getReviewsByClientId, getEvents, getPlans } from '@/lib/storage';
-import { DataManagement } from '@/components/DataManagement';
-import { UserManagement } from '@/components/UserManagement';
+import { getSettings } from '@/lib/extendedStorage';
 import { Client, PersonalPlan } from '@/types';
 import { differenceInMonths, differenceInDays, isBefore, parseISO, format } from 'date-fns';
 
@@ -96,19 +95,6 @@ export default function Dashboard() {
   };
 
   if (!user) return null;
-
-  if (isSettingsPage) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold mb-2">Nastavení</h2>
-          <p className="text-muted-foreground">Správa dat a uživatelů</p>
-        </div>
-        <DataManagement />
-        {user.role === 'admin' && <UserManagement />}
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

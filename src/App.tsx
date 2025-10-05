@@ -7,6 +7,10 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Clients from "./pages/Clients";
+import Calendar from "./pages/Calendar";
+import Reviews from "./pages/Reviews";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { isAuthenticated } from "./lib/auth";
 
@@ -62,7 +66,7 @@ const App = () => (
             path="/clients"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <Clients />
               </ProtectedRoute>
             }
           />
@@ -70,7 +74,7 @@ const App = () => (
             path="/calendar"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <Calendar />
               </ProtectedRoute>
             }
           />
@@ -78,7 +82,7 @@ const App = () => (
             path="/reviews"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <Reviews />
               </ProtectedRoute>
             }
           />
@@ -86,7 +90,7 @@ const App = () => (
             path="/settings"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <Settings />
               </ProtectedRoute>
             }
           />

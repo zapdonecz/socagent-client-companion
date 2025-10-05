@@ -31,17 +31,17 @@ export function AppSidebar() {
       : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground';
 
   return (
-    <Sidebar className="border-r border-sidebar-border">
-      <SidebarContent>
-        <div className="px-6 py-4">
-          <h1 className="text-2xl font-bold gradient-primary bg-clip-text text-transparent">
+    <Sidebar className="border-r border-sidebar-border bg-sidebar">
+      <SidebarContent className="bg-sidebar">
+        <div className="px-6 py-4 border-b border-sidebar-border">
+          <h1 className="text-2xl font-bold text-sidebar-foreground">
             SocAgent
           </h1>
           <p className="text-xs text-sidebar-foreground/70 mt-1">Systém pro CHB</p>
         </div>
         
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/70">Hlavní menu</SidebarGroupLabel>
+        <SidebarGroup className="px-3 py-4">
+          <SidebarGroupLabel className="text-sidebar-foreground/70 px-3">Hlavní menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (

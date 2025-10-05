@@ -30,8 +30,31 @@ export interface Client {
   };
   treatmentSupport: boolean;
   contacts: ClientContact[];
+  notes: ClientNote[];
+  documents: ClientDocument[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ClientNote {
+  id: string;
+  clientId: string;
+  title: string;
+  content: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClientDocument {
+  id: string;
+  clientId: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  uploadedBy: string;
+  uploadedAt: string;
+  notes?: string;
 }
 
 export interface ClientContact {
@@ -131,4 +154,24 @@ export interface ReviewArea {
   clientView: string;
   workerView: string;
   progress: 'green' | 'yellow' | 'red';
+}
+
+export interface Meeting {
+  id: string;
+  clientId?: string;
+  title: string;
+  content: string;
+  startTime: string;
+  endTime?: string;
+  createdBy: string;
+  participants: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AppSettings {
+  deadlineWarningDays: number;
+  reviewReminderMonths: number;
+  profileUpdateMonths: number;
+  showCompletedPlans: boolean;
 }
