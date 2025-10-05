@@ -121,6 +121,31 @@ export default function ClientDetail() {
     }
   }, [id]);
 
+  // Reload contacts when tab becomes active or when returning to the page
+  useEffect(() => {
+    const handleFocus = () => {
+      if (id) {
+        loadContacts();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    
+    // Also reload when component becomes visible again
+    const handleVisibilityChange = () => {
+      if (!document.hidden && id) {
+        loadContacts();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [id, client]);
+
   const loadClientData = () => {
     if (id) {
       const clients = getClients();
