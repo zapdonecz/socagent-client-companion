@@ -19,7 +19,9 @@ import {
   Video,
   Upload,
   Edit,
-  Clock
+  Clock,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import { getClients, saveEvent, getEvents, deleteEvent, getPlansByClientId, savePlan } from '@/lib/storage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -355,6 +357,25 @@ export default function ClientDetail() {
       title: plan.status === 'active' ? 'Plán dokončen' : 'Plán obnoven',
       description: plan.status === 'active' ? 'Plán byl označen jako dokončený' : 'Plán byl obnoven',
     });
+  };
+
+  const handleToggleStepComplete = (plan: PersonalPlan, stepId: string) => {
+    const updatedSteps = plan.steps.map(step =>
+      step.id === stepId
+        ? {
+            ...step,
+            completed: !step.completed,
+            completedDate: !step.completed ? new Date().toISOString() : undefined
+          }
+        : step
+    );
+    const updatedPlan = {
+      ...plan,
+      steps: updatedSteps,
+      updatedAt: new Date().toISOString(),
+    };
+    savePlan(updatedPlan);
+    loadPlans();
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -877,15 +898,35 @@ export default function ClientDetail() {
                           <div className="space-y-2 mt-3">
                             <p className="text-sm font-medium">Kroky:</p>
                             {plan.steps.map((step, index) => (
-                              <div key={step.id} className="text-sm pl-4 border-l-2 border-muted">
-                                <p className="font-medium">Krok {index + 1}</p>
-                                <p className="text-muted-foreground">Klient: {step.clientAction}</p>
-                                {step.othersAction && (
-                                  <p className="text-muted-foreground">Ostatní: {step.othersAction}</p>
-                                )}
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Termín: {new Date(step.deadline).toLocaleDateString('cs-CZ')}
-                                </p>
+                              <div 
+                                key={step.id} 
+                                className={`flex items-start gap-2 text-sm pl-4 border-l-2 ${step.completed ? 'border-green-500 opacity-60' : 'border-muted'}`}
+                              >
+                                <button
+                                  onClick={() => handleToggleStepComplete(plan, step.id)}
+                                  className="mt-1 text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  {step.completed ? (
+                                    <CheckSquare className="h-4 w-4 text-green-500" />
+                                  ) : (
+                                    <Square className="h-4 w-4" />
+                                  )}
+                                </button>
+                                <div className="flex-1">
+                                  <p className={`font-medium ${step.completed ? 'line-through' : ''}`}>
+                                    Krok {index + 1}
+                                  </p>
+                                  <p className="text-muted-foreground">Klient: {step.clientAction}</p>
+                                  {step.othersAction && (
+                                    <p className="text-muted-foreground">Ostatní: {step.othersAction}</p>
+                                  )}
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Termín: {new Date(step.deadline).toLocaleDateString('cs-CZ')}
+                                    {step.completed && step.completedDate && (
+                                      <> • Dokončeno: {new Date(step.completedDate).toLocaleDateString('cs-CZ')}</>
+                                    )}
+                                  </p>
+                                </div>
                               </div>
                             ))}
                           </div>

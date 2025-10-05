@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Calendar as CalendarIcon, Users, FileText, Clock, Target, LogOut } from 'lucide-react';
 import { getCurrentUser, logout } from '@/lib/auth';
 import { getClients, getProfiles, getPlansByClientId, getReviewsByClientId, getEvents, getPlans } from '@/lib/storage';
-import { getSettings } from '@/lib/extendedStorage';
-import { Client, PersonalPlan } from '@/types';
+import { getSettings, getMeetings } from '@/lib/extendedStorage';
+import { Client, PersonalPlan, PlanStep, CalendarEvent } from '@/types';
 import { differenceInMonths, differenceInDays, isBefore, parseISO, format } from 'date-fns';
 
 export default function Dashboard() {
@@ -17,7 +17,8 @@ export default function Dashboard() {
   const [clientsNeedingReview, setClientsNeedingReview] = useState<Client[]>([]);
   const [clientsNeedingPlanning, setClientsNeedingPlanning] = useState<Client[]>([]);
   const [upcomingDeadlines, setUpcomingDeadlines] = useState<PersonalPlan[]>([]);
-  const [upcomingEvents, setUpcomingEvents] = useState(0);
+  const [upcomingStepDeadlines, setUpcomingStepDeadlines] = useState<{plan: PersonalPlan, step: PlanStep, clientName: string}[]>([]);
+  const [upcomingEventsData, setUpcomingEventsData] = useState<CalendarEvent[]>([]);
 
   const isSettingsPage = location.pathname === '/settings';
 
@@ -75,13 +76,40 @@ export default function Dashboard() {
     });
     setUpcomingDeadlines(upcoming);
 
+    // Upcoming step deadlines (next 14 days)
+    const upcomingSteps: {plan: PersonalPlan, step: PlanStep, clientName: string}[] = [];
+    allPlans.forEach(plan => {
+      if (plan.status === 'active') {
+        plan.steps.forEach(step => {
+          if (!step.completed && step.deadline) {
+            const deadline = parseISO(step.deadline);
+            const daysUntil = differenceInDays(deadline, now);
+            if (daysUntil >= 0 && daysUntil <= 14) {
+              upcomingSteps.push({
+                plan,
+                step,
+                clientName: getClientName(plan.clientId)
+              });
+            }
+          }
+        });
+      }
+    });
+    upcomingSteps.sort((a, b) => {
+      const dateA = parseISO(a.step.deadline);
+      const dateB = parseISO(b.step.deadline);
+      return dateA.getTime() - dateB.getTime();
+    });
+    setUpcomingStepDeadlines(upcomingSteps);
+
     // Upcoming events
     const events = getEvents();
     const upcomingEvts = events.filter(event => {
       const eventDate = new Date(event.date);
-      return isBefore(now, eventDate) && differenceInMonths(eventDate, now) === 0;
-    });
-    setUpcomingEvents(upcomingEvts.length);
+      const daysUntil = differenceInDays(eventDate, now);
+      return daysUntil >= 0 && daysUntil <= 7;
+    }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    setUpcomingEventsData(upcomingEvts);
   }, [user, navigate]);
 
   const handleLogout = () => {
@@ -112,14 +140,17 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="hover-lift shadow-soft border-l-4 border-l-primary">
+        <Card 
+          className="hover-lift shadow-soft border-l-4 border-l-primary cursor-pointer"
+          onClick={() => navigate('/calendar')}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Události</CardTitle>
             <CalendarIcon className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-primary">{upcomingEvents}</div>
-            <p className="text-xs text-muted-foreground mt-1">Tento týden</p>
+            <div className="text-3xl font-bold text-primary">{upcomingEventsData.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Příštích 7 dní</p>
           </CardContent>
         </Card>
 
@@ -187,6 +218,89 @@ export default function Dashboard() {
                         </Badge>
                         <span className="text-xs text-muted-foreground">
                           {format(parseISO(plan.deadline!), 'dd.MM.yyyy')}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {upcomingStepDeadlines.length > 0 && (
+          <Card className="shadow-medium border-t-4 border-t-warning">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-warning" />
+                <CardTitle>Blížící se kroky plánů</CardTitle>
+              </div>
+              <CardDescription>
+                Kroky s termínem dokončení do 14 dní
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {upcomingStepDeadlines.slice(0, 5).map(({ plan, step, clientName }, index) => {
+                  const daysUntil = differenceInDays(parseISO(step.deadline), new Date());
+                  return (
+                    <div key={`${plan.id}-${step.id}`} className="p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <p className="font-medium text-sm line-clamp-1">{step.clientAction}</p>
+                          <p className="text-xs text-muted-foreground">{clientName} • {plan.goal}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge variant={daysUntil <= 3 ? 'destructive' : 'default'}>
+                            {daysUntil === 0 ? 'Dnes' : daysUntil === 1 ? 'Zítra' : `${daysUntil}d`}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {format(parseISO(step.deadline), 'dd.MM.yyyy')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {upcomingEventsData.length > 0 && (
+          <Card className="shadow-medium border-t-4 border-t-primary">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-5 w-5 text-primary" />
+                <CardTitle>Nadcházející události</CardTitle>
+              </div>
+              <CardDescription>
+                Naplánované události příštích 7 dní
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {upcomingEventsData.slice(0, 5).map(event => {
+                  const eventDate = new Date(event.date);
+                  const daysUntil = differenceInDays(eventDate, new Date());
+                  return (
+                    <div 
+                      key={event.id} 
+                      className="flex justify-between items-center p-3 bg-primary/5 border border-primary/20 rounded-lg cursor-pointer hover:bg-primary/10 transition-colors"
+                      onClick={() => event.clientId && navigate(`/clients/${event.clientId}`)}
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{event.title}</p>
+                        {event.clientName && (
+                          <p className="text-xs text-muted-foreground">{event.clientName}</p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge variant="outline">
+                          {daysUntil === 0 ? 'Dnes' : daysUntil === 1 ? 'Zítra' : format(eventDate, 'dd.MM.')}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {format(eventDate, 'HH:mm')}
                         </span>
                       </div>
                     </div>
