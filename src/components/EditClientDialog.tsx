@@ -266,12 +266,12 @@ export function EditClientDialog({ open, onOpenChange, client, onClientUpdated }
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="disabilityLevel">Stupeň</Label>
-                <Select value={formData.disabilityLevel} onValueChange={(v) => setFormData({ ...formData, disabilityLevel: v })}>
+                <Select value={formData.disabilityLevel || 'none'} onValueChange={(v) => setFormData({ ...formData, disabilityLevel: v === 'none' ? '' : v })}>
                   <SelectTrigger id="disabilityLevel">
                     <SelectValue placeholder="Vyberte stupeň" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Bez invalidity</SelectItem>
+                    <SelectItem value="none">Bez invalidity</SelectItem>
                     <SelectItem value="1">1. stupeň</SelectItem>
                     <SelectItem value="2">2. stupeň</SelectItem>
                     <SelectItem value="3">3. stupeň</SelectItem>
