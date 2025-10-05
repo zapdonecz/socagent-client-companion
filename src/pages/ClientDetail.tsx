@@ -356,6 +356,8 @@ export default function ClientDetail() {
         <TabsList>
           <TabsTrigger value="notes">Poznámky</TabsTrigger>
           <TabsTrigger value="documents">Dokumenty</TabsTrigger>
+          <TabsTrigger value="meetings">Schůzky</TabsTrigger>
+          <TabsTrigger value="events">Události</TabsTrigger>
           <TabsTrigger value="plans">Plány</TabsTrigger>
         </TabsList>
 
