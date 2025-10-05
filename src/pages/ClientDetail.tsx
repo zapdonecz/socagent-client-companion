@@ -22,7 +22,8 @@ import {
   Clock,
   CheckSquare,
   Square,
-  AlertCircle
+  AlertCircle,
+  MapPin
 } from 'lucide-react';
 import { getClients, saveEvent, getEvents, deleteEvent, getPlansByClientId, savePlan, saveClient } from '@/lib/storage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -40,11 +41,14 @@ import {
   getReviewsByClientId,
   saveReview,
   deleteReview,
-  getNextReviewDate
+  getNextReviewDate,
+  getContactsByClientId,
+  saveContact,
+  deleteContact
 } from '@/lib/extendedStorage';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import { getCurrentUser } from '@/lib/auth';
-import { Client, ClientNote, Meeting, PersonalPlan, PlanStep, SemiAnnualReview } from '@/types';
+import { Client, ClientNote, Meeting, PersonalPlan, PlanStep, SemiAnnualReview, ClientContact } from '@/types';
 import { ReviewDialog } from '@/components/ReviewDialog';
 import { EditClientDialog } from '@/components/EditClientDialog';
 import { addMonths, differenceInDays, format } from 'date-fns';
@@ -67,6 +71,7 @@ export default function ClientDetail() {
   const [events, setEvents] = useState<any[]>([]);
   const [plans, setPlans] = useState<PersonalPlan[]>([]);
   const [reviews, setReviews] = useState<SemiAnnualReview[]>([]);
+  const [contacts, setContacts] = useState<ClientContact[]>([]);
   const [editClientDialogOpen, setEditClientDialogOpen] = useState(false);
   
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
@@ -74,12 +79,14 @@ export default function ClientDetail() {
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
   
   const [editingNote, setEditingNote] = useState<ClientNote | null>(null);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
   const [editingEvent, setEditingEvent] = useState<any | null>(null);
   const [editingPlan, setEditingPlan] = useState<PersonalPlan | null>(null);
   const [editingReview, setEditingReview] = useState<SemiAnnualReview | null>(null);
+  const [editingContact, setEditingContact] = useState<ClientContact | null>(null);
   
   const [newNoteTitle, setNewNoteTitle] = useState('');
   const [newNoteContent, setNewNoteContent] = useState('');
@@ -96,6 +103,14 @@ export default function ClientDetail() {
   const [planImportance, setPlanImportance] = useState('');
   const [planDeadline, setPlanDeadline] = useState('');
   const [planSteps, setPlanSteps] = useState<PlanStep[]>([]);
+  
+  // Contact state
+  const [contactName, setContactName] = useState('');
+  const [contactRelationship, setContactRelationship] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactAddress, setContactAddress] = useState('');
+  const [contactNotes, setContactNotes] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -117,6 +132,7 @@ export default function ClientDetail() {
       loadEvents();
       loadPlans();
       loadReviews();
+      loadContacts();
     }
   };
 
@@ -154,6 +170,12 @@ export default function ClientDetail() {
   const loadReviews = () => {
     if (id) {
       setReviews(getReviewsByClientId(id));
+    }
+  };
+
+  const loadContacts = () => {
+    if (id) {
+      setContacts(getContactsByClientId(id));
     }
   };
 
@@ -411,6 +433,92 @@ export default function ClientDetail() {
     loadPlans();
   };
 
+  const handleAddContact = () => {
+    if (!contactName || !contactRelationship || !id) {
+      toast({
+        title: 'Chyba',
+        description: 'Vyplňte prosím jméno a vztah',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const contact: ClientContact = {
+      id: editingContact?.id || Date.now().toString(),
+      name: contactName,
+      relationship: contactRelationship,
+      phone: contactPhone,
+      email: contactEmail,
+      address: contactAddress,
+      notes: contactNotes,
+      clientIds: editingContact?.clientIds.filter(cid => cid !== id) || [],
+      createdAt: editingContact?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Add current client ID
+    if (!contact.clientIds.includes(id)) {
+      contact.clientIds.push(id);
+    }
+
+    saveContact(contact);
+    loadContacts();
+    resetContactForm();
+    setContactDialogOpen(false);
+
+    toast({
+      title: editingContact ? 'Kontakt upraven' : 'Kontakt přidán',
+      description: editingContact ? 'Změny byly úspěšně uloženy' : 'Kontakt byl úspěšně vytvořen',
+    });
+  };
+
+  const handleEditContact = (contact: ClientContact) => {
+    setEditingContact(contact);
+    setContactName(contact.name);
+    setContactRelationship(contact.relationship);
+    setContactPhone(contact.phone || '');
+    setContactEmail(contact.email || '');
+    setContactAddress(contact.address || '');
+    setContactNotes(contact.notes || '');
+    setContactDialogOpen(true);
+  };
+
+  const handleDeleteContact = (contactId: string) => {
+    if (!id) return;
+    
+    const contact = contacts.find(c => c.id === contactId);
+    if (!contact) return;
+
+    // If contact is linked to only this client, delete it entirely
+    if (contact.clientIds.length === 1 && contact.clientIds[0] === id) {
+      deleteContact(contactId);
+    } else {
+      // Otherwise, just remove this client from the contact's clientIds
+      const updatedContact = {
+        ...contact,
+        clientIds: contact.clientIds.filter(cid => cid !== id),
+        updatedAt: new Date().toISOString(),
+      };
+      saveContact(updatedContact);
+    }
+
+    loadContacts();
+    toast({
+      title: 'Kontakt odebrán',
+      description: 'Kontakt byl úspěšně odebrán z klienta',
+    });
+  };
+
+  const resetContactForm = () => {
+    setEditingContact(null);
+    setContactName('');
+    setContactRelationship('');
+    setContactPhone('');
+    setContactEmail('');
+    setContactAddress('');
+    setContactNotes('');
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !id || !user) return;
@@ -657,6 +765,7 @@ export default function ClientDetail() {
       <Tabs defaultValue={defaultTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="notes">Poznámky</TabsTrigger>
+          <TabsTrigger value="contacts">Kontakty</TabsTrigger>
           <TabsTrigger value="documents">Dokumenty</TabsTrigger>
           <TabsTrigger value="meetings">Schůzky</TabsTrigger>
           <TabsTrigger value="events">Události</TabsTrigger>
@@ -765,6 +874,184 @@ export default function ClientDetail() {
                           className="prose prose-sm max-w-none"
                           dangerouslySetInnerHTML={{ __html: note.content }}
                         />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="contacts" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Kontakty</CardTitle>
+                  <CardDescription>
+                    Kontaktní osoby klienta
+                  </CardDescription>
+                </div>
+                <Dialog open={contactDialogOpen} onOpenChange={(open) => {
+                  setContactDialogOpen(open);
+                  if (!open) resetContactForm();
+                }}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Přidat kontakt
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>{editingContact ? 'Upravit kontakt' : 'Přidat kontakt'}</DialogTitle>
+                      <DialogDescription>
+                        {editingContact ? 'Upravte informace o kontaktu' : 'Vyplňte informace o novém kontaktu'}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="contactName">Jméno *</Label>
+                          <Input
+                            id="contactName"
+                            value={contactName}
+                            onChange={(e) => setContactName(e.target.value)}
+                            placeholder="např. MUDr. Jan Novák"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="contactRelationship">Vztah/Funkce *</Label>
+                          <Input
+                            id="contactRelationship"
+                            value={contactRelationship}
+                            onChange={(e) => setContactRelationship(e.target.value)}
+                            placeholder="např. Lékař, Opatrovník"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="contactPhone">Telefon</Label>
+                          <Input
+                            id="contactPhone"
+                            value={contactPhone}
+                            onChange={(e) => setContactPhone(e.target.value)}
+                            placeholder="+420 123 456 789"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="contactEmail">Email</Label>
+                          <Input
+                            id="contactEmail"
+                            type="email"
+                            value={contactEmail}
+                            onChange={(e) => setContactEmail(e.target.value)}
+                            placeholder="email@example.com"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="contactAddress">Adresa</Label>
+                        <Input
+                          id="contactAddress"
+                          value={contactAddress}
+                          onChange={(e) => setContactAddress(e.target.value)}
+                          placeholder="Ulice 123, 100 00 Praha"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="contactNotes">Poznámky</Label>
+                        <Textarea
+                          id="contactNotes"
+                          value={contactNotes}
+                          onChange={(e) => setContactNotes(e.target.value)}
+                          placeholder="Další informace o kontaktu"
+                          rows={3}
+                        />
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-4">
+                        <Button variant="outline" onClick={() => setContactDialogOpen(false)}>
+                          Zrušit
+                        </Button>
+                        <Button onClick={handleAddContact}>
+                          Uložit kontakt
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {contacts.length === 0 ? (
+                <div className="text-center py-8">
+                  <Phone className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Zatím nejsou žádné kontakty</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {contacts.map(contact => (
+                    <Card key={contact.id}>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="flex-1 space-y-2">
+                            <div>
+                              <h4 className="font-semibold text-lg">{contact.name}</h4>
+                              <p className="text-sm text-muted-foreground">{contact.relationship}</p>
+                            </div>
+
+                            <div className="grid gap-2 md:grid-cols-2">
+                              {contact.phone && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Phone className="h-4 w-4 text-muted-foreground" />
+                                  <span>{contact.phone}</span>
+                                </div>
+                              )}
+                              {contact.email && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Mail className="h-4 w-4 text-muted-foreground" />
+                                  <span>{contact.email}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {contact.address && (
+                              <div className="flex items-start gap-2 text-sm">
+                                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                <span>{contact.address}</span>
+                              </div>
+                            )}
+
+                            {contact.notes && (
+                              <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                                {contact.notes}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditContact(contact)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteContact(contact.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}

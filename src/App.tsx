@@ -13,6 +13,7 @@ import Calendar from "./pages/Calendar";
 import Tasks from "./pages/Tasks";
 import Reviews from "./pages/Reviews";
 import Settings from "./pages/Settings";
+import Contacts from "./pages/Contacts";
 import NotFound from "./pages/NotFound";
 import { isAuthenticated } from "./lib/auth";
 
@@ -101,6 +102,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Reviews />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contacts"
+            element={
+              <ProtectedRoute>
+                <Contacts />
               </ProtectedRoute>
             }
           />

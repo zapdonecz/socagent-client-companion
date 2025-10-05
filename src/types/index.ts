@@ -81,7 +81,11 @@ export interface ClientContact {
   relationship: string;
   phone?: string;
   email?: string;
-  hasConsent: boolean;
+  address?: string;
+  notes?: string;
+  clientIds: string[]; // Multiple clients can share the same contact
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PersonalProfile {

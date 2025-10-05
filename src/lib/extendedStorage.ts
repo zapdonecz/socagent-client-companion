@@ -1,4 +1,4 @@
-import { Client, ClientNote, ClientDocument, Meeting, AppSettings, SemiAnnualReview, Task } from '@/types';
+import { Client, ClientNote, ClientDocument, Meeting, AppSettings, SemiAnnualReview, Task, ClientContact } from '@/types';
 import { z } from 'zod';
 
 const STORAGE_KEYS = {
@@ -12,6 +12,7 @@ const STORAGE_KEYS = {
   MEETINGS: 'socagent_meetings',
   SETTINGS: 'socagent_settings',
   TASKS: 'socagent_tasks',
+  CONTACTS: 'socagent_contacts',
 } as const;
 
 // Generic storage helpers
@@ -177,4 +178,27 @@ export const saveTask = (task: Task) => {
 export const deleteTask = (id: string) => {
   const tasks = getTasks().filter(t => t.id !== id);
   setItems(STORAGE_KEYS.TASKS, tasks);
+};
+
+// Contacts
+export const getContacts = (): ClientContact[] => getItems<ClientContact>(STORAGE_KEYS.CONTACTS);
+
+export const getContactsByClientId = (clientId: string): ClientContact[] => {
+  return getContacts().filter(c => c.clientIds.includes(clientId));
+};
+
+export const saveContact = (contact: ClientContact) => {
+  const contacts = getContacts();
+  const index = contacts.findIndex(c => c.id === contact.id);
+  if (index >= 0) {
+    contacts[index] = { ...contact, updatedAt: new Date().toISOString() };
+  } else {
+    contacts.push({ ...contact, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+  }
+  setItems(STORAGE_KEYS.CONTACTS, contacts);
+};
+
+export const deleteContact = (id: string) => {
+  const contacts = getContacts().filter(c => c.id !== id);
+  setItems(STORAGE_KEYS.CONTACTS, contacts);
 };

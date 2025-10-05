@@ -1,4 +1,4 @@
-import { Home, Users, Calendar, Settings, FileText, LayoutDashboard, CheckSquare } from 'lucide-react';
+import { Home, Users, Calendar, Settings, FileText, LayoutDashboard, CheckSquare, UserCircle } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Sidebar,
@@ -18,6 +18,7 @@ const menuItems = [
   { title: 'Kalendář', url: '/calendar', icon: Calendar },
   { title: 'Úkoly', url: '/tasks', icon: CheckSquare },
   { title: 'Hodnocení', url: '/reviews', icon: FileText },
+  { title: 'Kontakty', url: '/contacts', icon: UserCircle },
   { title: 'Nastavení', url: '/settings', icon: Settings },
 ];
 
