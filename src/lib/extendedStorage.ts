@@ -184,7 +184,15 @@ export const deleteTask = (id: string) => {
 export const getContacts = (): ClientContact[] => getItems<ClientContact>(STORAGE_KEYS.CONTACTS);
 
 export const getContactsByClientId = (clientId: string): ClientContact[] => {
-  return getContacts().filter(c => c.clientIds.includes(clientId));
+  const allContacts = getContacts();
+  console.log('getContactsByClientId - All contacts:', allContacts);
+  console.log('getContactsByClientId - Filtering for clientId:', clientId);
+  const filtered = allContacts.filter(c => {
+    console.log('Contact:', c.name, 'clientIds:', c.clientIds, 'includes?', c.clientIds?.includes(clientId));
+    return c.clientIds && c.clientIds.includes(clientId);
+  });
+  console.log('getContactsByClientId - Filtered contacts:', filtered);
+  return filtered;
 };
 
 export const saveContact = (contact: ClientContact) => {
