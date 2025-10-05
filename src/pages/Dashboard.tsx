@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Calendar, Users, FileText } from 'lucide-react';
+import { AlertCircle, Calendar, Users, FileText, Settings } from 'lucide-react';
 import { getCurrentUser, logout } from '@/lib/auth';
 import { getClients, getProfiles, getPlansByClientId, getReviewsByClientId, getEvents } from '@/lib/storage';
+import { DataManagement } from '@/components/DataManagement';
 import { Client } from '@/types';
 import { differenceInMonths, addMonths, isBefore } from 'date-fns';
 
@@ -14,6 +15,7 @@ export default function Dashboard() {
   const [clientsNeedingReview, setClientsNeedingReview] = useState<Client[]>([]);
   const [clientsNeedingPlanning, setClientsNeedingPlanning] = useState<Client[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState(0);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -79,6 +81,10 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold">SocAgent</h1>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">{user.name}</span>
+            <Button variant="outline" size="sm" onClick={() => setShowSettings(!showSettings)}>
+              <Settings className="h-4 w-4 mr-2" />
+              Nastavení
+            </Button>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               Odhlásit se
             </Button>
@@ -91,6 +97,12 @@ export default function Dashboard() {
           <h2 className="text-3xl font-bold mb-2">Přehled</h2>
           <p className="text-muted-foreground">Vítejte v systému správy chráněného bydlení</p>
         </div>
+
+        {showSettings && (
+          <div className="mb-8">
+            <DataManagement />
+          </div>
+        )}
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
           <Card className="shadow-soft hover:shadow-medium transition-shadow">

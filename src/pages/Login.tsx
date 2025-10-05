@@ -4,22 +4,30 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { login } from '@/lib/auth';
+import { login, register, loginSchema, registerSchema } from '@/lib/auth';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [registerEmail, setRegisterEmail] = useState('');
+  const [registerPassword, setRegisterPassword] = useState('');
+  const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
+  const [registerName, setRegisterName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrors({});
 
     try {
-      const user = login(email, password);
+      const validated = loginSchema.parse({ email: loginEmail, password: loginPassword });
+      const user = login(validated.email, validated.password);
       
       if (user) {
         toast({
@@ -34,12 +42,59 @@ export default function Login() {
           variant: 'destructive',
         });
       }
-    } catch (error) {
-      toast({
-        title: 'Chyba',
-        description: 'Něco se pokazilo',
-        variant: 'destructive',
+    } catch (error: any) {
+      if (error.errors) {
+        const newErrors: Record<string, string> = {};
+        error.errors.forEach((err: any) => {
+          newErrors[err.path[0]] = err.message;
+        });
+        setErrors(newErrors);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setErrors({});
+
+    try {
+      const validated = registerSchema.parse({
+        email: registerEmail,
+        password: registerPassword,
+        confirmPassword: registerConfirmPassword,
+        name: registerName,
       });
+      
+      const result = register(validated.email, validated.password, validated.name);
+      
+      if (result.success) {
+        toast({
+          title: 'Registrace úspěšná',
+          description: 'Nyní se můžete přihlásit',
+        });
+        // Reset form
+        setRegisterEmail('');
+        setRegisterPassword('');
+        setRegisterConfirmPassword('');
+        setRegisterName('');
+      } else {
+        toast({
+          title: 'Chyba registrace',
+          description: result.error || 'Něco se pokazilo',
+          variant: 'destructive',
+        });
+      }
+    } catch (error: any) {
+      if (error.errors) {
+        const newErrors: Record<string, string> = {};
+        error.errors.forEach((err: any) => {
+          newErrors[err.path[0]] = err.message;
+        });
+        setErrors(newErrors);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -55,41 +110,106 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="vas.email@example.cz"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Heslo</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Přihlašování...' : 'Přihlásit se'}
-            </Button>
-          </form>
-          <div className="mt-6 p-4 bg-muted rounded-md">
-            <p className="text-sm font-semibold mb-2">Demo přihlašovací údaje:</p>
-            <div className="space-y-1 text-xs text-muted-foreground">
-              <p><strong>Admin:</strong> admin@socagent.cz / demo123</p>
-              <p><strong>Pracovník:</strong> pracovnik@socagent.cz / demo123</p>
-            </div>
-          </div>
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Přihlášení</TabsTrigger>
+              <TabsTrigger value="register">Registrace</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="login">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="login-email">Email</Label>
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="vas.email@example.cz"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    required
+                  />
+                  {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Heslo</Label>
+                  <Input
+                    id="login-password"
+                    type="password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    required
+                  />
+                  {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? 'Přihlašování...' : 'Přihlásit se'}
+                </Button>
+              </form>
+              <div className="mt-6 p-4 bg-muted rounded-md">
+                <p className="text-sm font-semibold mb-2">Demo přihlašovací údaje:</p>
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <p><strong>Admin:</strong> admin@socagent.cz / demo123</p>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="register">
+              <form onSubmit={handleRegister} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="register-name">Celé jméno</Label>
+                  <Input
+                    id="register-name"
+                    type="text"
+                    placeholder="Jan Novák"
+                    value={registerName}
+                    onChange={(e) => setRegisterName(e.target.value)}
+                    required
+                  />
+                  {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="register-email">Email</Label>
+                  <Input
+                    id="register-email"
+                    type="email"
+                    placeholder="vas.email@example.cz"
+                    value={registerEmail}
+                    onChange={(e) => setRegisterEmail(e.target.value)}
+                    required
+                  />
+                  {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="register-password">Heslo</Label>
+                  <Input
+                    id="register-password"
+                    type="password"
+                    value={registerPassword}
+                    onChange={(e) => setRegisterPassword(e.target.value)}
+                    required
+                  />
+                  {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="register-confirm-password">Potvrdit heslo</Label>
+                  <Input
+                    id="register-confirm-password"
+                    type="password"
+                    value={registerConfirmPassword}
+                    onChange={(e) => setRegisterConfirmPassword(e.target.value)}
+                    required
+                  />
+                  {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? 'Registrace...' : 'Registrovat se'}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
   );
 }
+
