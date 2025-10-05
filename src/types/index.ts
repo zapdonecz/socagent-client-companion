@@ -73,6 +73,7 @@ export interface PersonalPlan {
   clientId: string;
   goal: string;
   importance: string;
+  deadline?: string;
   createdAt: string;
   updatedAt: string;
   status: 'active' | 'completed' | 'cancelled';
