@@ -73,6 +73,11 @@ export const savePlan = (plan: PersonalPlan) => {
   setItems(STORAGE_KEYS.PLANS, plans);
 };
 
+export const deletePlan = (id: string) => {
+  const plans = getPlans().filter(p => p.id !== id);
+  setItems(STORAGE_KEYS.PLANS, plans);
+};
+
 // Calendar Events
 export const getEvents = (): CalendarEvent[] => getItems<CalendarEvent>(STORAGE_KEYS.EVENTS);
 

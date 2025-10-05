@@ -25,7 +25,7 @@ import {
   AlertCircle,
   MapPin
 } from 'lucide-react';
-import { getClients, saveEvent, getEvents, deleteEvent, getPlansByClientId, savePlan, saveClient } from '@/lib/storage';
+import { getClients, saveEvent, getEvents, deleteEvent, getPlansByClientId, savePlan, saveClient, deletePlan } from '@/lib/storage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { 
@@ -1369,6 +1369,22 @@ export default function ClientDetail() {
                               onClick={() => handleEditPlan(plan)}
                             >
                               <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm('Opravdu chcete smazat tento plán? Tato akce je nevratná.')) {
+                                  deletePlan(plan.id);
+                                  loadPlans();
+                                  toast({
+                                    title: 'Plán smazán',
+                                    description: 'Osobní plán byl úspěšně odstraněn',
+                                  });
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
                         </div>
