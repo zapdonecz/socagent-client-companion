@@ -174,8 +174,32 @@ export default function ClientDetail() {
   };
 
   const loadContacts = () => {
-    if (id) {
-      setContacts(getContactsByClientId(id));
+    if (id && client) {
+      let allContacts = getContactsByClientId(id);
+      
+      // Check if client's own contact exists
+      const clientOwnContact = allContacts.find(c => c.id === `client-${id}`);
+      
+      // If client has phone, email, or address, ensure their own contact exists
+      if (client.phone || client.email || client.address) {
+        const ownContactData: ClientContact = {
+          id: `client-${id}`,
+          name: `${client.firstName} ${client.lastName}`,
+          relationship: 'Klient',
+          phone: client.phone,
+          email: client.email,
+          address: client.address,
+          notes: 'Kontaktní údaje klienta',
+          clientIds: [id],
+          createdAt: clientOwnContact?.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        
+        saveContact(ownContactData);
+        allContacts = getContactsByClientId(id);
+      }
+      
+      setContacts(allContacts);
     }
   };
 
