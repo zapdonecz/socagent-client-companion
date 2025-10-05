@@ -440,12 +440,12 @@ export default function Dashboard() {
                   <div 
                     key={client.id} 
                     className="flex justify-between items-center p-3 bg-accent/5 border border-accent/20 rounded-lg cursor-pointer hover:bg-accent/10 transition-colors"
-                    onClick={() => navigate(`/clients/${client.id}`)}
+                    onClick={() => navigate(`/clients/${client.id}?tab=plans`)}
                   >
                     <span className="font-medium text-sm">{client.firstName} {client.lastName}</span>
                     <Button size="sm" variant="outline" onClick={(e) => {
                       e.stopPropagation();
-                      navigate(`/clients/${client.id}`);
+                      navigate(`/clients/${client.id}?tab=plans`);
                     }}>
                       Zobrazit
                     </Button>
