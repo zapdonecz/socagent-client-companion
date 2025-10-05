@@ -60,7 +60,7 @@ export default function Tasks() {
       setPriority(task.priority);
       setStatus(task.status);
       setDueDate(task.dueDate || '');
-      setSelectedClient(task.clientId || '');
+      setSelectedClient(task.clientId || 'none');
     } else {
       resetForm();
     }
@@ -84,8 +84,8 @@ export default function Tasks() {
       priority,
       status,
       dueDate: dueDate || undefined,
-      clientId: selectedClient || undefined,
-      clientName: selectedClient ? clients.find(c => c.id === selectedClient)?.firstName + ' ' + clients.find(c => c.id === selectedClient)?.lastName : undefined,
+      clientId: selectedClient && selectedClient !== 'none' ? selectedClient : undefined,
+      clientName: selectedClient && selectedClient !== 'none' ? clients.find(c => c.id === selectedClient)?.firstName + ' ' + clients.find(c => c.id === selectedClient)?.lastName : undefined,
       assignedTo: user?.id,
       createdBy: editingTask?.createdBy || user?.id || '',
       createdAt: editingTask?.createdAt || new Date().toISOString(),
@@ -434,12 +434,12 @@ export default function Tasks() {
 
               <div className="space-y-2">
                 <Label htmlFor="client">Klient</Label>
-                <Select value={selectedClient} onValueChange={setSelectedClient}>
+                <Select value={selectedClient || 'none'} onValueChange={setSelectedClient}>
                   <SelectTrigger id="client">
                     <SelectValue placeholder="Bez klienta" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Bez klienta</SelectItem>
+                    <SelectItem value="none">Bez klienta</SelectItem>
                     {clients.map(client => (
                       <SelectItem key={client.id} value={client.id}>
                         {client.firstName} {client.lastName}
