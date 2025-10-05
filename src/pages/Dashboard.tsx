@@ -313,7 +313,7 @@ export default function Dashboard() {
                     <div 
                       key={event.id} 
                       className="flex justify-between items-center p-3 bg-primary/5 border border-primary/20 rounded-lg cursor-pointer hover:bg-primary/10 transition-colors"
-                      onClick={() => event.clientId && navigate(`/clients/${event.clientId}`)}
+                      onClick={() => event.clientId && navigate(`/clients/${event.clientId}?tab=events`)}
                     >
                       <div className="flex-1">
                         <p className="font-medium text-sm">{event.title}</p>
