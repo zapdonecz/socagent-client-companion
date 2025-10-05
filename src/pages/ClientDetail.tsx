@@ -12,14 +12,18 @@ import {
   ArrowLeft, 
   Phone, 
   Mail, 
-  Calendar, 
+  Calendar as CalendarIcon, 
   FileText, 
   Plus,
   Trash2,
   Video,
-  Upload
+  Upload,
+  Edit,
+  Clock
 } from 'lucide-react';
 import { getClients } from '@/lib/storage';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   getNotesByClientId, 
   saveNote, 
@@ -42,12 +46,21 @@ export default function ClientDetail() {
   const [client, setClient] = useState<Client | null>(null);
   const [notes, setNotes] = useState<ClientNote[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [meetingDialogOpen, setMeetingDialogOpen] = useState(false);
+  const [eventDialogOpen, setEventDialogOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<ClientNote | null>(null);
   const [newNoteTitle, setNewNoteTitle] = useState('');
   const [newNoteContent, setNewNoteContent] = useState('');
   const [meetingTitle, setMeetingTitle] = useState('');
   const [meetingContent, setMeetingContent] = useState('');
+  const [eventTitle, setEventTitle] = useState('');
+  const [eventDate, setEventDate] = useState('');
+  const [eventTime, setEventTime] = useState('');
+  const [eventType, setEventType] = useState<'meeting' | 'accompaniment' | 'other'>('meeting');
+  const [eventNotes, setEventNotes] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -56,6 +69,8 @@ export default function ClientDetail() {
       setClient(foundClient || null);
       loadNotes();
       loadDocuments();
+      loadMeetings();
+      loadEvents();
     }
   }, [id]);
 
@@ -71,29 +86,67 @@ export default function ClientDetail() {
     }
   };
 
+  const loadMeetings = () => {
+    if (id) {
+      const { getMeetingsByClientId } = require('@/lib/extendedStorage');
+      setMeetings(getMeetingsByClientId(id));
+    }
+  };
+
+  const loadEvents = () => {
+    if (id) {
+      const { getEvents } = require('@/lib/storage');
+      const allEvents = getEvents();
+      setEvents(allEvents.filter((e: any) => e.clientId === id));
+    }
+  };
+
   const handleAddNote = () => {
     if (!newNoteTitle || !newNoteContent || !id || !user) return;
 
-    const note: ClientNote = {
-      id: Date.now().toString(),
-      clientId: id,
-      title: newNoteTitle,
-      content: newNoteContent,
-      createdBy: user.name,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    if (editingNote) {
+      // Edit existing note
+      const updatedNote: ClientNote = {
+        ...editingNote,
+        title: newNoteTitle,
+        content: newNoteContent,
+        updatedAt: new Date().toISOString(),
+      };
+      saveNote(updatedNote);
+      setEditingNote(null);
+      toast({
+        title: 'Poznámka upravena',
+        description: 'Změny byly úspěšně uloženy',
+      });
+    } else {
+      // Create new note
+      const note: ClientNote = {
+        id: Date.now().toString(),
+        clientId: id,
+        title: newNoteTitle,
+        content: newNoteContent,
+        createdBy: user.name,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      saveNote(note);
+      toast({
+        title: 'Poznámka přidána',
+        description: 'Poznámka byla úspěšně uložena',
+      });
+    }
 
-    saveNote(note);
     loadNotes();
     setNewNoteTitle('');
     setNewNoteContent('');
     setNoteDialogOpen(false);
+  };
 
-    toast({
-      title: 'Poznámka přidána',
-      description: 'Poznámka byla úspěšně uložena',
-    });
+  const handleEditNote = (note: ClientNote) => {
+    setEditingNote(note);
+    setNewNoteTitle(note.title);
+    setNewNoteContent(note.content);
+    setNoteDialogOpen(true);
   };
 
   const handleDeleteNote = (noteId: string) => {
@@ -121,6 +174,7 @@ export default function ClientDetail() {
     };
 
     saveMeeting(meeting);
+    loadMeetings();
     setMeetingTitle('');
     setMeetingContent('');
     setMeetingDialogOpen(false);
@@ -128,6 +182,36 @@ export default function ClientDetail() {
     toast({
       title: 'Schůzka uložena',
       description: 'Zápis ze schůzky byl úspěšně uložen',
+    });
+  };
+
+  const handleAddEvent = () => {
+    if (!eventTitle || !eventDate || !id || !user) return;
+
+    const { saveEvent } = require('@/lib/storage');
+    const event = {
+      id: Date.now().toString(),
+      clientId: id,
+      clientName: `${client?.firstName} ${client?.lastName}`,
+      title: eventTitle,
+      type: eventType,
+      date: `${eventDate}T${eventTime || '00:00'}`,
+      duration: 60,
+      notes: eventNotes,
+      createdBy: user.name,
+    };
+
+    saveEvent(event);
+    loadEvents();
+    setEventTitle('');
+    setEventDate('');
+    setEventTime('');
+    setEventNotes('');
+    setEventDialogOpen(false);
+
+    toast({
+      title: 'Událost naplánována',
+      description: 'Schůzka byla přidána do kalendáře',
     });
   };
 
@@ -287,7 +371,14 @@ export default function ClientDetail() {
                     Poznámky a záznamy ke klientovi
                   </CardDescription>
                 </div>
-                <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+                <Dialog open={noteDialogOpen} onOpenChange={(open) => {
+                  setNoteDialogOpen(open);
+                  if (!open) {
+                    setEditingNote(null);
+                    setNewNoteTitle('');
+                    setNewNoteContent('');
+                  }
+                }}>
                   <DialogTrigger asChild>
                     <Button>
                       <Plus className="mr-2 h-4 w-4" />
@@ -296,9 +387,9 @@ export default function ClientDetail() {
                   </DialogTrigger>
                   <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>Přidat poznámku</DialogTitle>
+                      <DialogTitle>{editingNote ? 'Upravit poznámku' : 'Přidat poznámku'}</DialogTitle>
                       <DialogDescription>
-                        Vytvořte novou poznámku ke klientovi
+                        {editingNote ? 'Upravte poznámku ke klientovi' : 'Vytvořte novou poznámku ke klientovi'}
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
@@ -344,19 +435,28 @@ export default function ClientDetail() {
                     <Card key={note.id}>
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-2">
-                          <div>
+                          <div className="flex-1">
                             <h4 className="font-semibold">{note.title}</h4>
                             <p className="text-xs text-muted-foreground">
                               {note.createdBy} • {new Date(note.createdAt).toLocaleString('cs-CZ')}
                             </p>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteNote(note.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditNote(note)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteNote(note.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
                         </div>
                         <div 
                           className="prose prose-sm max-w-none"
@@ -444,6 +544,175 @@ export default function ClientDetail() {
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">Plány budou brzy k dispozici</p>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="meetings" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Zápisy ze schůzek</CardTitle>
+              <CardDescription>
+                Historie schůzek s klientem
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {meetings.length === 0 ? (
+                <div className="text-center py-8">
+                  <Video className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Zatím nejsou žádné záznamy schůzek</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Použijte tlačítko "Začít schůzku" pro vytvoření zápisu
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {meetings.map(meeting => (
+                    <Card key={meeting.id}>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h4 className="font-semibold">{meeting.title}</h4>
+                            <p className="text-xs text-muted-foreground">
+                              {meeting.createdBy} • {new Date(meeting.startTime).toLocaleString('cs-CZ')}
+                            </p>
+                          </div>
+                          <Badge variant="secondary">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Schůzka
+                          </Badge>
+                        </div>
+                        <div 
+                          className="prose prose-sm max-w-none mt-3"
+                          dangerouslySetInnerHTML={{ __html: meeting.content }}
+                        />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="events" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Naplánované události</CardTitle>
+                  <CardDescription>
+                    Schůzky a doprovody s klientem
+                  </CardDescription>
+                </div>
+                <Dialog open={eventDialogOpen} onOpenChange={setEventDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Naplánovat událost
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Naplánovat událost</DialogTitle>
+                      <DialogDescription>
+                        Vytvořte schůzku nebo doprovod s klientem
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="eventTitle">Název události</Label>
+                        <Input
+                          id="eventTitle"
+                          placeholder="např. Konzultace osobního plánu"
+                          value={eventTitle}
+                          onChange={(e) => setEventTitle(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="eventDate">Datum</Label>
+                          <Input
+                            id="eventDate"
+                            type="date"
+                            value={eventDate}
+                            onChange={(e) => setEventDate(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="eventTime">Čas</Label>
+                          <Input
+                            id="eventTime"
+                            type="time"
+                            value={eventTime}
+                            onChange={(e) => setEventTime(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="eventType">Typ události</Label>
+                        <Select value={eventType} onValueChange={(value: any) => setEventType(value)}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="meeting">Schůzka</SelectItem>
+                            <SelectItem value="accompaniment">Doprovod</SelectItem>
+                            <SelectItem value="other">Jiné</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="eventNotes">Poznámky</Label>
+                        <Textarea
+                          id="eventNotes"
+                          placeholder="Dodatečné informace k události..."
+                          value={eventNotes}
+                          onChange={(e) => setEventNotes(e.target.value)}
+                          rows={3}
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setEventDialogOpen(false)}>
+                          Zrušit
+                        </Button>
+                        <Button onClick={handleAddEvent}>
+                          Naplánovat
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {events.length === 0 ? (
+                <div className="text-center py-8">
+                  <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Žádné naplánované události</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {events.map(event => (
+                    <div key={event.id} className="flex justify-between items-center p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium">{event.title}</h4>
+                          <Badge variant="outline">
+                            {event.type === 'meeting' ? 'Schůzka' : event.type === 'accompaniment' ? 'Doprovod' : 'Jiné'}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(event.date).toLocaleString('cs-CZ')}
+                        </p>
+                        {event.notes && (
+                          <p className="text-sm text-muted-foreground mt-1">{event.notes}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
