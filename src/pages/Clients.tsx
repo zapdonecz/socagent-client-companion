@@ -3,13 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, Phone, Mail, Calendar, UserPlus } from 'lucide-react';
-import { getClients } from '@/lib/storage';
+import { Users, Phone, Mail, Calendar, UserPlus, Trash2 } from 'lucide-react';
+import { getClients, deleteClient } from '@/lib/storage';
 import { AddClientDialog } from '@/components/AddClientDialog';
 import { Client } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Clients() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
 
   const loadClients = () => {
@@ -19,6 +21,18 @@ export default function Clients() {
   useEffect(() => {
     loadClients();
   }, []);
+
+  const handleDeleteClient = (client: Client, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm(`Opravdu chcete smazat klienta ${client.firstName} ${client.lastName}? Tato akce je nevratná a smaže i všechny související údaje.`)) {
+      deleteClient(client.id);
+      loadClients();
+      toast({
+        title: 'Klient smazán',
+        description: `Klient ${client.firstName} ${client.lastName} byl úspěšně odstraněn`,
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -86,13 +100,22 @@ export default function Clients() {
                         </div>
                       </div>
 
-                      <Button 
-                        variant="outline" 
-                        className="w-full mt-4"
-                        onClick={() => navigate(`/clients/${client.id}`)}
-                      >
-                        Zobrazit detail
-                      </Button>
+                      <div className="flex gap-2 mt-4">
+                        <Button 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => navigate(`/clients/${client.id}`)}
+                        >
+                          Zobrazit detail
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => handleDeleteClient(client, e)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

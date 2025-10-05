@@ -25,7 +25,7 @@ import {
   AlertCircle,
   MapPin
 } from 'lucide-react';
-import { getClients, saveEvent, getEvents, deleteEvent, getPlansByClientId, savePlan, saveClient, deletePlan } from '@/lib/storage';
+import { getClients, saveEvent, getEvents, deleteEvent, getPlansByClientId, savePlan, saveClient, deletePlan, deleteClient } from '@/lib/storage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { 
@@ -629,6 +629,23 @@ export default function ClientDetail() {
             >
               <Edit className="h-4 w-4 mr-2" />
               Upravit informace
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (confirm(`Opravdu chcete smazat klienta ${client.firstName} ${client.lastName}? Tato akce je nevratná a smaže i všechny související údaje (poznámky, plány, hodnocení, atd.).`)) {
+                  deleteClient(client.id);
+                  toast({
+                    title: 'Klient smazán',
+                    description: `Klient ${client.firstName} ${client.lastName} byl úspěšně odstraněn`,
+                  });
+                  navigate('/clients');
+                }
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2 text-destructive" />
+              Smazat klienta
             </Button>
           
             <Dialog open={meetingDialogOpen} onOpenChange={(open) => {
