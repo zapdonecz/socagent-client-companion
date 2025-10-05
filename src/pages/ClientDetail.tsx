@@ -21,7 +21,8 @@ import {
   Edit,
   Clock,
   CheckSquare,
-  Square
+  Square,
+  AlertCircle
 } from 'lucide-react';
 import { getClients, saveEvent, getEvents, deleteEvent, getPlansByClientId, savePlan } from '@/lib/storage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -35,11 +36,18 @@ import {
   deleteDocument,
   saveMeeting,
   getMeetingsByClientId,
-  deleteMeeting
+  deleteMeeting,
+  getReviewsByClientId,
+  saveReview,
+  deleteReview,
+  getNextReviewDate
 } from '@/lib/extendedStorage';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import { getCurrentUser } from '@/lib/auth';
-import { Client, ClientNote, Meeting, PersonalPlan, PlanStep } from '@/types';
+import { Client, ClientNote, Meeting, PersonalPlan, PlanStep, SemiAnnualReview } from '@/types';
+import { ReviewDialog } from '@/components/ReviewDialog';
+import { addMonths, differenceInDays, format } from 'date-fns';
+import { cs } from 'date-fns/locale';
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
@@ -53,16 +61,19 @@ export default function ClientDetail() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [plans, setPlans] = useState<PersonalPlan[]>([]);
+  const [reviews, setReviews] = useState<SemiAnnualReview[]>([]);
   
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [meetingDialogOpen, setMeetingDialogOpen] = useState(false);
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   
   const [editingNote, setEditingNote] = useState<ClientNote | null>(null);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
   const [editingEvent, setEditingEvent] = useState<any | null>(null);
   const [editingPlan, setEditingPlan] = useState<PersonalPlan | null>(null);
+  const [editingReview, setEditingReview] = useState<SemiAnnualReview | null>(null);
   
   const [newNoteTitle, setNewNoteTitle] = useState('');
   const [newNoteContent, setNewNoteContent] = useState('');
@@ -90,6 +101,7 @@ export default function ClientDetail() {
       loadMeetings();
       loadEvents();
       loadPlans();
+      loadReviews();
     }
   }, [id]);
 
@@ -121,6 +133,12 @@ export default function ClientDetail() {
   const loadPlans = () => {
     if (id) {
       setPlans(getPlansByClientId(id));
+    }
+  };
+
+  const loadReviews = () => {
+    if (id) {
+      setReviews(getReviewsByClientId(id));
     }
   };
 
@@ -531,6 +549,7 @@ export default function ClientDetail() {
           <TabsTrigger value="meetings">Schůzky</TabsTrigger>
           <TabsTrigger value="events">Události</TabsTrigger>
           <TabsTrigger value="plans">Plány</TabsTrigger>
+          <TabsTrigger value="reviews">Hodnocení</TabsTrigger>
         </TabsList>
 
         <TabsContent value="notes" className="space-y-4">
@@ -1163,7 +1182,191 @@ export default function ClientDetail() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="reviews" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Půlroční hodnocení</CardTitle>
+                  <CardDescription>
+                    Hodnocení spolupráce s klientem každých 6 měsíců
+                  </CardDescription>
+                </div>
+                <Button onClick={() => {
+                  setEditingReview(null);
+                  setReviewDialogOpen(true);
+                }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nové hodnocení
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {client && (
+                <>
+                  {/* Next Review Alert */}
+                  {(() => {
+                    const nextDate = getNextReviewDate(client.contractDate, reviews);
+                    const daysUntil = differenceInDays(nextDate, new Date());
+                    
+                    if (daysUntil <= 30) {
+                      return (
+                        <div className={`p-4 rounded-lg mb-4 border ${
+                          daysUntil <= 0 
+                            ? 'bg-destructive/10 border-destructive' 
+                            : 'bg-warning/10 border-warning'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            <AlertCircle className={daysUntil <= 0 ? 'text-destructive' : 'text-warning'} />
+                            <div>
+                              <p className="font-medium">
+                                {daysUntil <= 0 
+                                  ? 'Hodnocení je po termínu!' 
+                                  : `Hodnocení je naplánováno za ${daysUntil} dní`
+                                }
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Termín: {format(nextDate, 'dd. MM. yyyy', { locale: cs })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+
+                  {reviews.length === 0 ? (
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">Zatím nebylo vytvořeno žádné hodnocení</p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        První hodnocení: {format(addMonths(new Date(client.contractDate), 6), 'dd. MM. yyyy', { locale: cs })}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {reviews.map(review => (
+                        <Card key={review.id}>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start mb-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-semibold">
+                                    Hodnocení {format(new Date(review.period.start), 'MM/yyyy')} - {format(new Date(review.period.end), 'MM/yyyy')}
+                                  </h4>
+                                  {review.signedByClient && review.signedByWorker && (
+                                    <Badge variant="default">Podepsáno</Badge>
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  Vytvořeno: {format(new Date(review.createdAt), 'dd. MM. yyyy', { locale: cs })}
+                                </p>
+                              </div>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingReview(review);
+                                    setReviewDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    if (confirm('Opravdu chcete smazat toto hodnocení?')) {
+                                      deleteReview(review.id);
+                                      loadReviews();
+                                      toast({
+                                        title: 'Hodnocení smazáno',
+                                        description: 'Hodnocení bylo úspěšně odstraněno',
+                                      });
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            {/* Progress Overview */}
+                            <div className="grid grid-cols-3 gap-2 mt-3">
+                              {Object.entries(review.areas).map(([key, area]) => {
+                                const label = {
+                                  housing: 'Bydlení',
+                                  work: 'Práce',
+                                  education: 'Vzdělávání',
+                                  recreation: 'Volný čas',
+                                  health: 'Zdraví',
+                                  selfCare: 'Péče o sebe',
+                                  relationships: 'Vztahy',
+                                  safety: 'Bezpečí',
+                                  finances: 'Finance',
+                                }[key] || key;
+
+                                return (
+                                  <div
+                                    key={key}
+                                    className={`p-2 rounded text-xs text-center ${
+                                      area.progress === 'green'
+                                        ? 'bg-green-100 text-green-800'
+                                        : area.progress === 'yellow'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-red-100 text-red-800'
+                                    }`}
+                                  >
+                                    {label}
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {review.clientSatisfaction && (
+                              <div className="mt-3 p-3 bg-muted/50 rounded">
+                                <p className="text-sm font-medium mb-1">Spokojenost klienta:</p>
+                                <p className="text-sm">{review.clientSatisfaction}</p>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* Review Dialog */}
+      {client && (
+        <ReviewDialog
+          open={reviewDialogOpen}
+          onOpenChange={setReviewDialogOpen}
+          client={client}
+          existingReview={editingReview || undefined}
+          defaultPeriodStart={editingReview 
+            ? new Date(editingReview.period.start)
+            : reviews.length > 0 
+              ? new Date(reviews[reviews.length - 1].period.end)
+              : new Date(client.contractDate)
+          }
+          defaultPeriodEnd={editingReview
+            ? new Date(editingReview.period.end)
+            : getNextReviewDate(client.contractDate, reviews)
+          }
+          onSave={(review) => {
+            saveReview(review);
+            loadReviews();
+          }}
+        />
+      )}
     </div>
   );
 }

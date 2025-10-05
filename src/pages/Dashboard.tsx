@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Calendar as CalendarIcon, Users, FileText, Clock, Target, LogOut } from 'lucide-react';
 import { getCurrentUser, logout } from '@/lib/auth';
-import { getClients, getProfiles, getPlansByClientId, getReviewsByClientId, getEvents, getPlans } from '@/lib/storage';
-import { getSettings, getMeetings } from '@/lib/extendedStorage';
+import { getClients, getProfiles, getPlansByClientId, getEvents, getPlans } from '@/lib/storage';
+import { getSettings, getMeetings, getReviewsByClientId, getNextReviewDate } from '@/lib/extendedStorage';
 import { Client, PersonalPlan, PlanStep, CalendarEvent } from '@/types';
 import { differenceInMonths, differenceInDays, isBefore, parseISO, format } from 'date-fns';
 
@@ -40,12 +40,9 @@ export default function Dashboard() {
     // Clients needing semi-annual review
     const needingReview = clients.filter(client => {
       const reviews = getReviewsByClientId(client.id);
-      const lastReview = reviews.length > 0 
-        ? new Date(reviews[reviews.length - 1].period.end)
-        : new Date(client.contractDate);
-      
-      const monthsSinceReview = differenceInMonths(now, lastReview);
-      return monthsSinceReview >= 5;
+      const nextReviewDate = getNextReviewDate(client.contractDate, reviews);
+      const daysUntilReview = differenceInDays(nextReviewDate, now);
+      return daysUntilReview <= 30; // Show if review is due within 30 days
     });
     setClientsNeedingReview(needingReview);
 

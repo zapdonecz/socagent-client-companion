@@ -1,4 +1,4 @@
-import { Client, ClientNote, ClientDocument, Meeting, AppSettings } from '@/types';
+import { Client, ClientNote, ClientDocument, Meeting, AppSettings, SemiAnnualReview } from '@/types';
 import { z } from 'zod';
 
 const STORAGE_KEYS = {
@@ -104,4 +104,52 @@ export const getSettings = (): AppSettings => {
 
 export const saveSettings = (settings: AppSettings) => {
   localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+};
+
+// Semi-Annual Reviews
+export const getReviews = (): SemiAnnualReview[] => getItems<SemiAnnualReview>(STORAGE_KEYS.REVIEWS);
+
+export const getReviewsByClientId = (clientId: string): SemiAnnualReview[] => {
+  return getReviews().filter(r => r.clientId === clientId).sort((a, b) => 
+    new Date(a.period.start).getTime() - new Date(b.period.start).getTime()
+  );
+};
+
+export const saveReview = (review: SemiAnnualReview) => {
+  const reviews = getReviews();
+  const index = reviews.findIndex(r => r.id === review.id);
+  if (index >= 0) {
+    reviews[index] = review;
+  } else {
+    reviews.push({ ...review, createdAt: new Date().toISOString() });
+  }
+  setItems(STORAGE_KEYS.REVIEWS, reviews);
+};
+
+export const deleteReview = (id: string) => {
+  const reviews = getReviews().filter(r => r.id !== id);
+  setItems(STORAGE_KEYS.REVIEWS, reviews);
+};
+
+// Calculate next review date for a client
+export const getNextReviewDate = (contractDate: string, existingReviews: SemiAnnualReview[]): Date => {
+  const contract = new Date(contractDate);
+  
+  if (existingReviews.length === 0) {
+    // First review: 6 months from contract date
+    const firstReview = new Date(contract);
+    firstReview.setMonth(firstReview.getMonth() + 6);
+    return firstReview;
+  }
+  
+  // Find the latest review period end
+  const sortedReviews = [...existingReviews].sort((a, b) => 
+    new Date(b.period.end).getTime() - new Date(a.period.end).getTime()
+  );
+  
+  const lastReviewEnd = new Date(sortedReviews[0].period.end);
+  const nextReview = new Date(lastReviewEnd);
+  nextReview.setMonth(nextReview.getMonth() + 6);
+  
+  return nextReview;
 };
