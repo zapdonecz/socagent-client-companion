@@ -176,4 +176,21 @@ export interface AppSettings {
   showCompletedPlans: boolean;
   stepDeadlineWarningDays: number;
   eventReminderDays: number;
+  taskReminderDays: number;
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  priority: 'low' | 'medium' | 'high';
+  status: 'todo' | 'in-progress' | 'done';
+  dueDate?: string;
+  clientId?: string;
+  clientName?: string;
+  assignedTo?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
 }

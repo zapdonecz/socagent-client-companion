@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import ClientDetail from "./pages/ClientDetail";
 import Calendar from "./pages/Calendar";
+import Tasks from "./pages/Tasks";
 import Reviews from "./pages/Reviews";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -84,6 +85,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Calendar />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tasks"
+            element={
+              <ProtectedRoute>
+                <Tasks />
               </ProtectedRoute>
             }
           />

@@ -3,11 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Calendar as CalendarIcon, Users, FileText, Clock, Target, LogOut } from 'lucide-react';
+import { AlertCircle, Calendar as CalendarIcon, Users, FileText, Clock, Target, LogOut, CheckSquare } from 'lucide-react';
 import { getCurrentUser, logout } from '@/lib/auth';
 import { getClients, getProfiles, getPlansByClientId, getEvents, getPlans } from '@/lib/storage';
-import { getSettings, getMeetings, getReviewsByClientId, getNextReviewDate } from '@/lib/extendedStorage';
-import { Client, PersonalPlan, PlanStep, CalendarEvent } from '@/types';
+import { getSettings, getMeetings, getReviewsByClientId, getNextReviewDate, getTasks } from '@/lib/extendedStorage';
+import { Client, PersonalPlan, PlanStep, CalendarEvent, Task } from '@/types';
 import { differenceInMonths, differenceInDays, isBefore, parseISO, format } from 'date-fns';
 
 export default function Dashboard() {
@@ -19,6 +19,7 @@ export default function Dashboard() {
   const [upcomingDeadlines, setUpcomingDeadlines] = useState<PersonalPlan[]>([]);
   const [upcomingStepDeadlines, setUpcomingStepDeadlines] = useState<{plan: PersonalPlan, step: PlanStep, clientName: string}[]>([]);
   const [upcomingEventsData, setUpcomingEventsData] = useState<CalendarEvent[]>([]);
+  const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([]);
 
   const isSettingsPage = location.pathname === '/settings';
 
@@ -110,6 +111,16 @@ export default function Dashboard() {
       return daysUntil >= 0 && daysUntil <= settings.eventReminderDays;
     }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     setUpcomingEventsData(upcomingEvts);
+
+    // Upcoming tasks (configurable days)
+    const tasks = getTasks();
+    const upcomingTsks = tasks.filter(task => {
+      if (task.status === 'done' || !task.dueDate) return false;
+      const dueDate = new Date(task.dueDate);
+      const daysUntil = differenceInDays(dueDate, now);
+      return daysUntil >= -7 && daysUntil <= settings.taskReminderDays; // Include overdue up to 7 days
+    }).sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+    setUpcomingTasks(upcomingTsks);
   }, [user, navigate]);
 
   const handleLogout = () => {
@@ -387,6 +398,71 @@ export default function Dashboard() {
                     </Button>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {upcomingTasks.length > 0 && (
+          <Card className="shadow-medium border-t-4 border-t-primary">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <CheckSquare className="h-5 w-5 text-primary" />
+                <CardTitle>Nadcházející úkoly</CardTitle>
+              </div>
+              <CardDescription>
+                Úkoly s termínem příštích {getSettings().taskReminderDays} dní
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {upcomingTasks.slice(0, 5).map(task => {
+                  const daysUntil = task.dueDate ? differenceInDays(new Date(task.dueDate), new Date()) : null;
+                  const isOverdue = daysUntil !== null && daysUntil < 0;
+                  
+                  return (
+                    <div 
+                      key={task.id} 
+                      className={`flex justify-between items-center p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
+                        isOverdue ? 'border-destructive bg-destructive/5' : 'bg-primary/5 border-primary/20'
+                      }`}
+                      onClick={() => navigate('/tasks')}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm">{task.title}</p>
+                          <Badge variant={
+                            task.priority === 'high' ? 'destructive' : 
+                            task.priority === 'medium' ? 'default' : 
+                            'secondary'
+                          }>
+                            {task.priority === 'high' ? 'Vysoká' : task.priority === 'medium' ? 'Střední' : 'Nízká'}
+                          </Badge>
+                        </div>
+                        {task.clientName && (
+                          <p className="text-xs text-muted-foreground mt-1">{task.clientName}</p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge variant={isOverdue ? 'destructive' : 'outline'}>
+                          {isOverdue 
+                            ? `Po termínu ${Math.abs(daysUntil!)}d` 
+                            : daysUntil === 0 
+                            ? 'Dnes' 
+                            : daysUntil === 1 
+                            ? 'Zítra' 
+                            : `${daysUntil}d`
+                          }
+                        </Badge>
+                        {task.dueDate && (
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(task.dueDate), 'dd.MM.yyyy')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

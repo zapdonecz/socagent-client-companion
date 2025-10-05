@@ -1,4 +1,4 @@
-import { Client, ClientNote, ClientDocument, Meeting, AppSettings, SemiAnnualReview } from '@/types';
+import { Client, ClientNote, ClientDocument, Meeting, AppSettings, SemiAnnualReview, Task } from '@/types';
 import { z } from 'zod';
 
 const STORAGE_KEYS = {
@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
   DOCUMENTS: 'socagent_documents',
   MEETINGS: 'socagent_meetings',
   SETTINGS: 'socagent_settings',
+  TASKS: 'socagent_tasks',
 } as const;
 
 // Generic storage helpers
@@ -95,6 +96,7 @@ const defaultSettings: AppSettings = {
   showCompletedPlans: false,
   stepDeadlineWarningDays: 14,
   eventReminderDays: 7,
+  taskReminderDays: 7,
 };
 
 export const getSettings = (): AppSettings => {
@@ -152,4 +154,27 @@ export const getNextReviewDate = (contractDate: string, existingReviews: SemiAnn
   nextReview.setMonth(nextReview.getMonth() + 6);
   
   return nextReview;
+};
+
+// Tasks
+export const getTasks = (): Task[] => getItems<Task>(STORAGE_KEYS.TASKS);
+
+export const getTasksByClientId = (clientId: string): Task[] => {
+  return getTasks().filter(t => t.clientId === clientId);
+};
+
+export const saveTask = (task: Task) => {
+  const tasks = getTasks();
+  const index = tasks.findIndex(t => t.id === task.id);
+  if (index >= 0) {
+    tasks[index] = { ...task, updatedAt: new Date().toISOString() };
+  } else {
+    tasks.push({ ...task, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+  }
+  setItems(STORAGE_KEYS.TASKS, tasks);
+};
+
+export const deleteTask = (id: string) => {
+  const tasks = getTasks().filter(t => t.id !== id);
+  setItems(STORAGE_KEYS.TASKS, tasks);
 };

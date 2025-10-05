@@ -55,6 +55,10 @@ export default function ClientDetail() {
   const { toast } = useToast();
   const user = getCurrentUser();
   
+  // Get tab from URL query parameter
+  const [searchParams] = useState(() => new URLSearchParams(window.location.search));
+  const defaultTab = searchParams.get('tab') || 'notes';
+  
   const [client, setClient] = useState<Client | null>(null);
   const [notes, setNotes] = useState<ClientNote[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -542,7 +546,7 @@ export default function ClientDetail() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="notes" className="space-y-4">
+      <Tabs defaultValue={defaultTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="notes">Poznámky</TabsTrigger>
           <TabsTrigger value="documents">Dokumenty</TabsTrigger>

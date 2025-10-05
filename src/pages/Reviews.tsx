@@ -102,7 +102,7 @@ export default function Reviews() {
               <div
                 key={client.id}
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                onClick={() => navigate(`/clients/${client.id}`)}
+                onClick={() => navigate(`/clients/${client.id}?tab=reviews`)}
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
@@ -153,7 +153,7 @@ export default function Reviews() {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/clients/${client.id}`);
+                    navigate(`/clients/${client.id}?tab=reviews`);
                   }}
                 >
                   {reviews.length === 0 ? 'Vytvořit hodnocení' : 'Zobrazit'}

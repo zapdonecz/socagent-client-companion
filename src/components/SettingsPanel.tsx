@@ -134,6 +134,26 @@ export function SettingsPanel() {
             </p>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="taskReminder">
+              Upozornění na úkoly (dny předem)
+            </Label>
+            <Input
+              id="taskReminder"
+              type="number"
+              min="1"
+              max="30"
+              value={settings.taskReminderDays}
+              onChange={(e) => setSettings({
+                ...settings,
+                taskReminderDays: parseInt(e.target.value) || 7
+              })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Zobrazit úkoly s termínem do X dní na dashboardu
+            </p>
+          </div>
+
           <div className="flex items-center justify-between space-x-2 py-4 border-t">
             <div className="space-y-0.5">
               <Label htmlFor="showCompleted">
