@@ -21,7 +21,7 @@ import {
   Edit,
   Clock
 } from 'lucide-react';
-import { getClients } from '@/lib/storage';
+import { getClients, saveEvent, getEvents } from '@/lib/storage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { 
@@ -31,7 +31,8 @@ import {
   getDocumentsByClientId,
   saveDocument,
   deleteDocument,
-  saveMeeting
+  saveMeeting,
+  getMeetingsByClientId
 } from '@/lib/extendedStorage';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import { getCurrentUser } from '@/lib/auth';
@@ -88,14 +89,12 @@ export default function ClientDetail() {
 
   const loadMeetings = () => {
     if (id) {
-      const { getMeetingsByClientId } = require('@/lib/extendedStorage');
       setMeetings(getMeetingsByClientId(id));
     }
   };
 
   const loadEvents = () => {
     if (id) {
-      const { getEvents } = require('@/lib/storage');
       const allEvents = getEvents();
       setEvents(allEvents.filter((e: any) => e.clientId === id));
     }
@@ -188,7 +187,6 @@ export default function ClientDetail() {
   const handleAddEvent = () => {
     if (!eventTitle || !eventDate || !id || !user) return;
 
-    const { saveEvent } = require('@/lib/storage');
     const event = {
       id: Date.now().toString(),
       clientId: id,
