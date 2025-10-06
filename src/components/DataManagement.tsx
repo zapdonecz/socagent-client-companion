@@ -50,11 +50,11 @@ export function DataManagement() {
       if (result.success) {
         toast({
           title: 'Import úspěšný',
-          description: 'Data byla úspěšně importována. Obnovte stránku.',
+          description: 'Data byla úspěšně importována.',
         });
         setTimeout(() => {
-          window.location.reload();
-        }, 2000);
+          window.location.href = '/';
+        }, 1500);
       } else {
         toast({
           title: 'Chyba při importu',
@@ -80,11 +80,11 @@ export function DataManagement() {
     clearAllData();
     toast({
       title: 'Data vymazána',
-      description: 'Všechna data byla vymazána. Obnovte stránku.',
+      description: 'Všechna data byla vymazána.',
     });
     setTimeout(() => {
-      window.location.reload();
-    }, 2000);
+      window.location.href = '/';
+    }, 1500);
   };
 
   return (
