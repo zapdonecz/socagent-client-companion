@@ -6,9 +6,22 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { login, register, loginSchema, registerSchema } from '@/lib/auth';
+import { login, register, loginSchema, registerSchema, getAllUsers, deleteUser } from '@/lib/auth';
 import { importData, downloadDataAsJSON } from '@/lib/dataExport';
-import { Upload, Download } from 'lucide-react';
+import { Upload, Download, Trash2, Shield, User as UserIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { User } from '@/types';
 
 export default function Login() {
   const [loginEmail, setLoginEmail] = useState('');
@@ -20,6 +33,8 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [users, setUsers] = useState<User[]>(getAllUsers());
+  const [showUserManagement, setShowUserManagement] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -79,6 +94,7 @@ export default function Login() {
           title: 'Registrace úspěšná',
           description: 'Nyní se můžete přihlásit',
         });
+        // Reset form
         setRegisterEmail('');
         setRegisterPassword('');
         setRegisterConfirmPassword('');
@@ -153,6 +169,24 @@ export default function Login() {
       toast({
         title: 'Chyba při exportu',
         description: 'Nepodařilo se exportovat data',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteUser = (userId: string) => {
+    const result = deleteUser(userId);
+    
+    if (result.success) {
+      setUsers(getAllUsers());
+      toast({
+        title: 'Uživatel smazán',
+        description: 'Uživatel byl úspěšně odstraněn',
+      });
+    } else {
+      toast({
+        title: 'Chyba při mazání',
+        description: result.error || 'Nepodařilo se smazat uživatele',
         variant: 'destructive',
       });
     }
@@ -293,3 +327,4 @@ export default function Login() {
     </div>
   );
 }
+
