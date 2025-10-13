@@ -117,6 +117,48 @@ export const getAllUsers = (): User[] => {
   return storedUsers.map(({ password, ...user }) => user);
 };
 
+export const updateUser = (userId: string, data: { name?: string; email?: string; role?: UserRole }): { success: boolean; error?: string } => {
+  const usersJson = localStorage.getItem(STORAGE_KEYS.USERS_DB);
+  if (!usersJson) return { success: false, error: 'Systémová chyba' };
+  
+  const users: StoredUser[] = JSON.parse(usersJson);
+  const userIndex = users.findIndex(u => u.id === userId);
+  
+  if (userIndex === -1) {
+    return { success: false, error: 'Uživatel nenalezen' };
+  }
+  
+  // Check if email already exists (for different user)
+  if (data.email && users.some(u => u.email === data.email && u.id !== userId)) {
+    return { success: false, error: 'Email je již registrován' };
+  }
+  
+  // Prevent removing last admin
+  if (data.role && users[userIndex].role === 'admin' && data.role !== 'admin') {
+    const adminCount = users.filter(u => u.role === 'admin').length;
+    if (adminCount <= 1) {
+      return { success: false, error: 'Nelze odebrat roli poslednímu administrátorovi' };
+    }
+  }
+  
+  // Update user
+  users[userIndex] = {
+    ...users[userIndex],
+    ...data,
+  };
+  
+  localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(users));
+  
+  // Update current user session if editing self
+  const currentUser = getCurrentUser();
+  if (currentUser?.id === userId) {
+    const { password: _, ...updatedUser } = users[userIndex];
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+  }
+  
+  return { success: true };
+};
+
 export const deleteUser = (userId: string): { success: boolean; error?: string } => {
   const usersJson = localStorage.getItem(STORAGE_KEYS.USERS_DB);
   if (!usersJson) return { success: false, error: 'Systémová chyba' };

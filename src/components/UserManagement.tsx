@@ -17,6 +17,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
+import { EditUserDialog } from '@/components/EditUserDialog';
 
 export function UserManagement() {
   const [users, setUsers] = useState<User[]>(getAllUsers());
@@ -89,31 +90,36 @@ export function UserManagement() {
                 <Badge variant={user.role === 'admin' ? 'default' : 'outline'}>
                   {user.role === 'admin' ? 'Administrátor' : 'Pracovník'}
                 </Badge>
-                {currentUser?.role === 'admin' && currentUser?.id !== user.id && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Smazat uživatele?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Opravdu chcete smazat uživatele {user.name}? Tato akce je nevratná.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Zrušit</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={() => handleDeleteUser(user.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Smazat
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                {currentUser?.role === 'admin' && (
+                  <>
+                    <EditUserDialog user={user} onUserUpdated={refreshUsers} />
+                    {currentUser?.id !== user.id && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Smazat uživatele?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Opravdu chcete smazat uživatele {user.name}? Tato akce je nevratná.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Zrušit</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDeleteUser(user.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Smazat
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </>
                 )}
               </div>
             </div>
