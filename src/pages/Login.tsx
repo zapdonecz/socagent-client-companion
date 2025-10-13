@@ -237,12 +237,6 @@ export default function Login() {
                   {isLoading ? 'Přihlašování...' : 'Přihlásit se'}
                 </Button>
               </form>
-              <div className="mt-6 p-4 bg-muted rounded-md">
-                <p className="text-sm font-semibold mb-2">Demo přihlašovací údaje:</p>
-                <div className="space-y-1 text-xs text-muted-foreground">
-                  <p><strong>Admin:</strong> admin@socagent.cz / demo123</p>
-                </div>
-              </div>
             </TabsContent>
             
             <TabsContent value="register">
@@ -327,80 +321,7 @@ export default function Login() {
               onChange={handleImport}
               className="hidden"
             />
-            
-            <Button
-              variant="secondary"
-              className="w-full"
-              onClick={() => setShowUserManagement(!showUserManagement)}
-            >
-              {showUserManagement ? 'Skrýt správu uživatelů' : 'Zobrazit správu uživatelů'}
-            </Button>
           </div>
-
-          {showUserManagement && (
-            <div className="mt-6 space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b">
-                <h3 className="font-semibold">Správa uživatelů</h3>
-                <Button variant="ghost" size="sm" onClick={() => setUsers(getAllUsers())}>
-                  Obnovit
-                </Button>
-              </div>
-              {users.map(user => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      {user.role === 'admin' ? (
-                        <Shield className="h-4 w-4 text-primary" />
-                      ) : (
-                        <UserIcon className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={user.role === 'admin' ? 'default' : 'outline'} className="text-xs">
-                      {user.role === 'admin' ? 'Admin' : 'Pracovník'}
-                    </Badge>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Smazat uživatele?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Opravdu chcete smazat uživatele {user.name}? Tato akce je nevratná.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Zrušit</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Smazat
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              ))}
-              {users.length === 0 && (
-                <p className="text-center text-sm text-muted-foreground py-4">
-                  Žádní uživatelé nenalezeni
-                </p>
-              )}
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
