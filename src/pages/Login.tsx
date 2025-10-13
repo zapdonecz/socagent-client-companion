@@ -8,17 +8,6 @@ import { createOrLoginUser, getAllUsers, deleteUser } from '@/lib/auth';
 import { importData, downloadDataAsJSON } from '@/lib/dataExport';
 import { Upload, Download, Trash2, User as UserIcon, LogIn } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { User } from '@/types';
 
 export default function Login() {
@@ -91,7 +80,11 @@ export default function Login() {
     }
   };
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = (userId: string, userName: string) => {
+    if (!window.confirm(`Opravdu chcete smazat uživatele ${userName}?`)) {
+      return;
+    }
+    
     const result = deleteUser(userId);
     
     if (result.success) {
@@ -152,34 +145,14 @@ export default function Login() {
                         </Badge>
                       )}
                     </button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Smazat uživatele?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Opravdu chcete smazat uživatele {user.name}? Tato akce je nevratná.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Zrušit</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Smazat
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => handleDeleteUser(user.id, user.name)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
                   </div>
                 ))}
               </div>
